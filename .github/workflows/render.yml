@@ -44,5 +44,6 @@ jobs:
             output/*.mp4
             output/*.srt
             output/render_report.json
+            output/media_credits.json
           if-no-files-found: warn
           retention-days: 7
