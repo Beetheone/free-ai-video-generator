@@ -31,6 +31,9 @@ jobs:
           curl --fail --location --retry 3 --output models/zh_CN-huayan-medium.onnx.json "https://huggingface.co/rhasspy/piper-voices/resolve/main/zh/zh_CN/huayan/medium/zh_CN-huayan-medium.onnx.json"
           test $(wc -c < models/zh_CN-huayan-medium.onnx) -gt 50000000
 
+      - name: Validate Python sources
+        run: python -m py_compile render.py media_assets.py open_video.py piper_voice.py
+
       - name: Render video
         env:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
