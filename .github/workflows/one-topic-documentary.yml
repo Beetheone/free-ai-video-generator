@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       topic:
-        description: 'Only required input: real gaming event'
+        description: '遊戲題材（可輸入繁體中文、簡體中文或英文）'
         required: true
         type: string
       minutes:
