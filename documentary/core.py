@@ -21,6 +21,45 @@ class Blocked(RuntimeError):
         self.code, self.detail = code, detail
 
 
+def provider_error(response):
+    """Allowlisted error metadata only; never echo provider messages or keys."""
+    allowed_codes = {"unsupported_parameter", "unsupported_value", "model_not_found", "invalid_api_key",
+                     "insufficient_quota", "rate_limit_exceeded", "context_length_exceeded",
+                     "billing_hard_limit_reached", "account_deactivated", "invalid_request_error"}
+    allowed_params = {"max_tokens", "max_completion_tokens", "temperature", "response_format", "model", "messages", "stream"}
+    result = {}
+    try:
+        body = response.json()
+        error = body.get("error", {}) if isinstance(body, dict) else {}
+        if isinstance(error, dict):
+            for field in ("code", "type"):
+                if error.get(field) in allowed_codes and not result.get("code"):
+                    result["code"] = error[field]
+            if error.get("param") in allowed_params:
+                result["parameter"] = error["param"]
+            # Some compatible providers put a reason only in message/type.
+            # Detect fixed phrases without logging any part of the raw message.
+            message = error.get("message", "")
+            if isinstance(message, str) and result.get("code") in (None, "invalid_request_error"):
+                lowered = message.lower()
+                if any(p in lowered for p in ("exceeded your current quota", "check your plan and billing", "insufficient_quota")):
+                    result["code"] = "insufficient_quota"
+                elif "rate limit reached" in lowered or "requests per minute" in lowered or "tokens per minute" in lowered:
+                    result["code"] = "rate_limit_exceeded"
+    except (ValueError, TypeError, AttributeError):
+        pass
+    headers = getattr(response, "headers", {}) or {}
+    media = headers.get("Content-Type", "").split(";",1)[0].lower()
+    result["media_type"] = media if media in {"application/json", "application/problem+json", "text/html", "text/plain", "text/event-stream", ""} else "other"
+    try:
+        retry = float(headers.get("Retry-After", ""))
+        if math.isfinite(retry) and 0 <= retry <= 3600:
+            result["retry_after_seconds"] = retry
+    except (ValueError, TypeError):
+        pass
+    return result
+
+
 def save(path, data):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -136,17 +175,8 @@ class Model:
         except requests.RequestException as exc:
             raise Blocked("MODEL_NETWORK", f"Model endpoint unavailable ({type(exc).__name__})") from None
         if r.status_code != 200:
-            safe = []
-            try:
-                error = r.json().get("error", {})
-                if isinstance(error, dict):
-                    if error.get("code") in {"unsupported_parameter", "unsupported_value", "model_not_found", "invalid_api_key", "insufficient_quota", "rate_limit_exceeded", "context_length_exceeded", "billing_hard_limit_reached", "account_deactivated"}:
-                        safe.append("code="+error["code"])
-                    if error.get("param") in {"max_tokens", "max_completion_tokens", "temperature", "response_format", "model", "messages", "stream"}:
-                        safe.append("parameter="+error["param"])
-            except (ValueError, TypeError, AttributeError):
-                pass
-            detail = ("; " + ", ".join(safe)) if safe else ""
+            meta = provider_error(r)
+            detail = "; " + ", ".join(f"{k}={v or 'missing'}" for k,v in meta.items())
             raise Blocked("MODEL_UNAVAILABLE", f"Model HTTP {r.status_code}{detail}; check model access, rate quota, endpoint and credentials. Response body withheld.")
         try:
             body = r.json()
