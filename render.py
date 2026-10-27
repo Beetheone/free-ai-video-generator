@@ -47,13 +47,17 @@ def stock_video(q,out):
  except Exception as e:print('Optional footage failed:',str(e)[:150])
  return False
 async def voice(text,out):
- from piper_voice import synthesize
+ if os.getenv('TTS_ENGINE','kokoro') == 'kokoro':
+  from kokoro_voice import synthesize
+ else:
+  from piper_voice import synthesize
  await asyncio.to_thread(synthesize,text,out)
 def main():
  clips=[];cues=[];time=0;credits=[];stock_count=0;commons_video_count=0;image_count=0;card_count=0
  work=Path(tempfile.mkdtemp())
  try:
-  for i,s in enumerate(SCENES,1):
+  selected=SCENES[:2] if os.getenv('VOICE_PREVIEW','false') == 'true' else SCENES
+  for i,s in enumerate(selected,1):
    print('Rendering scene',i,'/',len(SCENES),flush=True)
    audio=work/f'a{i}.wav';shot=work/f'shot{i}.jpg';stock=work/f'stock{i}.mp4';video=work/f'v{i}.mp4'
    asyncio.run(voice(s['narration'],audio))
