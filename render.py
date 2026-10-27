@@ -6,7 +6,8 @@ import asyncio,json,os,subprocess,tempfile,shutil,re,math
 from pathlib import Path
 import requests
 from PIL import Image,ImageDraw,ImageFont
-import edge_tts
+from media_assets import try_image
+from open_video import fetch_video
 ROOT=Path(__file__).parent; OUT=ROOT/'output';OUT.mkdir(exist_ok=True)
 SCENES=json.loads((ROOT/'scenes.json').read_text('utf-8'))
 FONT='/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc'
@@ -48,7 +49,7 @@ async def voice(text,out):
  from piper_voice import synthesize
  await asyncio.to_thread(synthesize,text,out)
 def main():
- clips=[];cues=[];time=0;failures=[];stock_count=0
+ clips=[];cues=[];time=0;credits=[];stock_count=0;commons_video_count=0;image_count=0;card_count=0
  work=Path(tempfile.mkdtemp())
  try:
   for i,s in enumerate(SCENES,1):
@@ -62,16 +63,25 @@ def main():
    speed=max(1,duration/(target-0.2))
    af=f'atempo={speed:.5f},apad=whole_dur={target:.3f},atrim=duration={target:.3f}'
    gotstock=stock_video(s['stock_query'],stock)
+   if not gotstock:
+    gotstock=fetch_video(s['stock_query'],stock,credits,i)
+    if gotstock:commons_video_count+=1
    if gotstock:
     stock_count+=1
     run(['ffmpeg','-y','-stream_loop','-1','-i',str(stock),'-i',str(audio),'-vf','scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,fps=24,format=yuv420p','-af',af,'-t',str(target),'-c:v','libx264','-preset','ultrafast','-crf','29','-c:a','aac','-b:a','128k',str(video)])
    else:
-    frame(s,shot)
-    run(['ffmpeg','-y','-loop','1','-framerate','24','-i',str(shot),'-i',str(audio),'-vf','format=yuv420p','-af',af,'-t',str(target),'-c:v','libx264','-preset','ultrafast','-crf','29','-c:a','aac','-b:a','128k',str(video)])
+    has_image=try_image(s['stock_query'],shot,credits,i)
+    if has_image:
+     image_count+=1
+    else:
+     card_count+=1
+     frame(s,shot)
+    run(['ffmpeg','-y','-loop','1','-framerate','24','-i',str(shot),'-i',str(audio),'-vf','scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,zoompan=z=\'min(zoom+0.0005,1.08)\':d=1:s=1920x1080:fps=24,format=yuv420p','-af',af,'-t',str(target),'-c:v','libx264','-preset','ultrafast','-crf','29','-c:a','aac','-b:a','128k',str(video)])
    clips.append(video);cues.append((time,time+target,s['narration']));time+=target
   concat=work/'list.txt';concat.write_text(''.join("file '"+str(v).replace("'","'\\''")+"'\n" for v in clips))
   run(['ffmpeg','-y','-f','concat','-safe','0','-i',str(concat),'-c','copy',str(OUT/'herculaneum_zh_tw.mp4')])
   (OUT/'herculaneum_actual_timing.srt').write_text('\n'.join(f'{i}\n{stamp(a)} --> {stamp(b)}\n{lines(txt,25)}\n' for i,(a,b,txt) in enumerate(cues,1)),encoding='utf-8')
-  (OUT/'render_report.json').write_text(json.dumps({'seconds':time,'scenes':len(clips),'pexels_stock_scenes':stock_count,'note':'SRT uses actual rendered scene durations. Subtitles are separate and not burned into MP4.'},ensure_ascii=False,indent=2),encoding='utf-8')
+  (OUT/'media_credits.json').write_text(json.dumps(credits,ensure_ascii=False,indent=2),encoding='utf-8')
+  (OUT/'render_report.json').write_text(json.dumps({'seconds':time,'scenes':len(clips),'video_scenes':stock_count,'commons_video_scenes':commons_video_count,'wikimedia_image_scenes':image_count,'text_card_scenes':card_count,'note':'SRT uses actual rendered scene durations. External licensing must be reviewed.'},ensure_ascii=False,indent=2),encoding='utf-8')
  finally:shutil.rmtree(work,ignore_errors=True)
 if __name__=='__main__':main()
