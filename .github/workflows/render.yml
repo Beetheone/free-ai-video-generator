@@ -22,6 +22,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg fonts-noto-cjk
           pip install -r requirements.txt
+          pip install piper-tts opencc-python-reimplemented
 
       - name: Render video
         env:
