@@ -6,7 +6,7 @@
 
 1. 進入 [One Topic Game Documentary](https://github.com/Beetheone/free-ai-video-generator/actions/workflows/one-topic-documentary.yml)，選 **Run workflow**。合併前選分支 `feat/topic-documentary-pipeline`，合併後選 `main`。
 2. 輸入「寶可夢紅綠版，推卡車抓夢幻的都市傳說」等題材，選分鐘與旁白。無須自己寫腳本、分鏡、搜尋詞。
-3. 先在 repository **Settings → Secrets and variables → Actions** 安全設定 Secret `LLM_API_KEY`；在 Variables 設定 `LLM_BASE_URL`（HTTPS、含相容 API 基底路徑）與 `LLM_MODEL`。模型必須同時支援圖片輸入、JSON object 與 chat completions。這是一次性的環境設定；每次產片只輸入題材。勿在議題、程式碼或聊天貼金鑰。
+3. 先在 repository **Settings → Secrets and variables → Actions** 安全設定 Secret `LLM_API_KEY`。目前 [config/model.json](../config/model.json) 已依使用者選擇設定 `https://api.openai.com/v1` 與 `gpt-4.1-mini`，不必再手填兩個非機密欄位。GPT API 與 ChatGPT 會員分開計費，專案不會替帳戶充值或開通付費服務。若要換提供者／模型，可用 `LLM_BASE_URL`、`LLM_MODEL` 的 Actions Variables 或 Secrets 覆寫；優先序為 Variables、Secrets、專案設定。每次產片只輸入題材，金鑰永遠不寫入設定 JSON、議題、程式碼或聊天。
 4. 可選 Gemini 免費額度方案：在 [Google AI Studio](https://aistudio.google.com/apikey) 取得適用的 API key，`LLM_BASE_URL` 設 `https://generativelanguage.googleapis.com/v1beta/openai`，`LLM_MODEL` 可選官方 SDK 目前示例的 `gemini-flash-latest`。需依帳戶／區域確認模型支援、免費資格及當期配額；alias 的實際模型可能改變，本次尚未取得金鑰實測 Gemini。也可選另一相容提供者並設定其端點、模型與金鑰；程式要求明確指定提供者，避免將既有通用 key 自動傳給另一服務。
 5. Actions 成功後，Artifacts 內有 `documentary.mp4`、`documentary.srt`、`thumbnail.jpg`、`ATTRIBUTION.md`、`sources.json` 與審核報告。將素材署名與授權連結放入 YouTube 說明。系統不會自動上傳 YouTube。
 6. 失敗時仍上傳 JSON。先看 `qa_report.json` 的 `failed_stage`、`blocker.code`、`blocker.detail`，再查看該階段報告。`work/`、原始素材與未通過的 `candidate.mp4` 不會當成成品上傳。
@@ -62,6 +62,8 @@ python -m venv /workspace/.venvs/game-doc
 每次執行建立新目錄，拒絕沿用既存成品。測試合成影片只是編碼與字幕驗證，不可當遊戲畫面。未通過的素材留在開發機供診斷，不會成為 Actions 的 MP4 成品。
 
 `doctor` 不發送網路請求、不輸出金鑰值，只檢查套件、工具、字型、憑證變數是否存在，以及可用的啟動網路政策快照。它不證明目前網路政策、模型權限或外部服務已就緒；實際執行仍是必要驗收。缺前置條件退出 2，通過也只代表 `PRECHECKS_PASS_SERVICE_TESTS_REQUIRED`。Actions 會保存診斷 JSON，並在 run summary 顯示實際製作結果。
+
+如推論出現模糊的 HTTP 429／權限錯誤，額外診斷只會讀取模型目錄 `GET /models`，不生成內容、不更改帳務。模型目錄可讀或模型存在都不能證明有可用推論額度。明確的 `insufficient_quota`、`invalid_api_key` 等錯誤不會觸發更多探測或盲目重試。HTTP 錯誤只保留允許清單中的錯誤碼、參數及 media type，不輸出 API key 或服務商原始錯誤訊息。
 
 `qa_report.json` 在每個階段與逐段配音／匹配後寫入 `current_stage`、`completed_stages`、`progress`、`updated_at`。失敗時附 `next_actions`。SIGTERM／Ctrl-C 會保存 `CANCELLED`；無法攔截的強制 SIGKILL 只能留下最後一次 checkpoint。未經重新審核的半成品不會自動恢復或當成成片。
 

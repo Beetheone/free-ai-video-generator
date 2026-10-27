@@ -6,7 +6,7 @@
 
 **尚未證明能自動完成任意題材的高品質紀錄片。** 本次已驗證實際渲染、音畫同步與拒絕不合格內容，測試也已在 GitHub Actions 成功。真實題材實跑揭露原先選用的 GitHub Models 已退役；已移除該預設，必須先配置可用模型服務。缺少合法且相符的畫面時會回傳失敗與報告，沒有文字卡、無關素材或示範影片補位。詳見 [操作、驗證結果與限制](docs/DOCUMENTARY.md) 和 [第三方評估](docs/THIRD_PARTY.md)。
 
-需一次性安全設定 `LLM_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL`。可選 Gemini 等提供免費額度的文字＋視覺模型，額度與資格不保證；不會自動購買服務或把 GitHub token 傳給其他提供者。旁白預設 Edge 台灣中文，可選 Kokoro CPU 普通話。每日台灣時間 09:20 排程與最多三題批次已接上；[config/topics.json](config/topics.json) 預設空陣列，避免未設定就消耗額度。
+目前依使用者選擇，以 [config/model.json](config/model.json) 明確設定 OpenAI `gpt-4.1-mini`；首次需安全填入 GitHub Secret `LLM_API_KEY`。GPT API 與 ChatGPT 訂閱分開計費。`LLM_BASE_URL`、`LLM_MODEL` 可放在 Actions Variables 或 Secrets 覆寫，未填則使用專案設定。也可改用符合資格的 Gemini 免費額度方案，但不保證足夠每天產片。旁白預設 Edge 台灣中文，可選 Kokoro CPU 普通話。每日台灣時間 09:20 排程與最多三題批次已接上；[config/topics.json](config/topics.json) 預設空陣列，避免未設定就消耗額度。
 
 原本 `render.py`、Kokoro、Pixabay、Wikimedia、Piper 與以下舊工作流程均保留。下方介紹的是既有腳本／圖片動畫流程，不代表新遊戲紀錄片的品質或免費保證。
 

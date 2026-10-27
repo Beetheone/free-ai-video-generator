@@ -96,3 +96,18 @@ HTTP 200、有效 JSON、模型輸出 schema、主張證據、合法素材及影
 [最終 Documentary tests，106d42e](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40598629632)：**Success**，Python 3.11，70 項測試所在工作流程完成，約 56 秒。這與本機 70 項測試結果一致，仍不代表真實研究、模型或影片產製完成。
 
 完成驗證後已將 `config/topics.json` 恢復 `[]`，避免每日反覆執行測試題材。PR API 仍受這台 Codex 環境尚未套用的網路政策阻擋；完整 PR 描述已保存在 [PR_DESCRIPTION.md](PR_DESCRIPTION.md)。
+
+## 使用者設定 GPT 金鑰後的實跑
+
+| 執行 | 真實結果 |
+| --- | --- |
+| [bf62acb：首次檢查使用者設定](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40602841674) | `LLM_API_KEY` 已被讀取，仍缺端點／模型值；沒有要求重新提供金鑰 |
+| [ade8bcd：使用專案 GPT 設定](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40603830048) | 已通過前置檢查，第一個實際 API 請求回傳 HTTP 429 |
+| [4f5654a：安全解析 429](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40604393457) | 公開註記明確確認 `MODEL_UNAVAILABLE`、`HTTP 429`、`code=insufficient_quota`、`media_type=application/json`。已停止推論，未進入研究／腳本／素材／配音／渲染 |
+| [4f5654a：82 項測試](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40604393511) | 真正 Python 3.11 GitHub runner **Success**，約 54 秒；本機 **82 passed in 15.55s** |
+
+`config/model.json` 明確選用 OpenAI `gpt-4.1-mini`，讓使用者只需設定金鑰；Variables／Secrets 仍可覆寫非機密端點及模型。新增安全錯誤分類區分 API 額度、頻率、金鑰和參數，原始錯誤訊息及金鑰不會寫入報告。已知 `insufficient_quota` 不觸發額外模型目錄探測或生成重試。
+
+目前需使用者在 OpenAI API 帳務頁確認金鑰所屬帳戶／專案有可用 API 餘額及額度。ChatGPT 訂閱與 API 帳務分開；程式不能替使用者充值或變更帳務。付費並非唯一選項，也可改用有實際可用免費額度的相容提供者，但此處沒有宣稱替代方案已通過完整影片驗收。此次驗證後再次清空題材清單，避免明知額度不足仍持續每日執行。
+
+雲端草稿已增加 `api.openai.com` 網域及更新非機密設定建議。既有個人 `LLM_API_KEY` 需求仍綁定較早的 Gemini 目的地；設定工具拒絕直接改變已有綁定，因此該金鑰目的地沒有被自動改寫或複製，若要在 Codex 本機使用 OpenAI，需於環境設定編輯既有需求為 `api.openai.com`。這與已成功讀到金鑰的 GitHub Actions 設定不同，不會修復目前的 API 額度問題。
