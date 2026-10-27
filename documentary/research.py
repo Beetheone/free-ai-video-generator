@@ -93,17 +93,26 @@ def validate_claims(claims, sources):
         ids.add(c["id"])
         supports = c.get("evidence", [])
         domains = set()
+        fingerprints = set()
         for e in supports:
             s = indexed.get(e.get("source_id"))
             quote = e.get("quote", "")
             if not s or not isinstance(quote, str) or len(quote.strip()) < 24 or quote not in s["text"]:
                 raise Blocked("EVIDENCE_INVALID", f"Claim {c['id']}: citation is not an exact retrieved quote")
-            domains.add(publisher(s["url"]))
+            fingerprint = digest(s["text"].encode())
+            if fingerprint not in fingerprints:
+                domains.add(publisher(s["url"]))
+                fingerprints.add(fingerprint)
         if len(domains) < 2:
             raise Blocked("EVIDENCE_INSUFFICIENT", f"Claim {c['id']}: requires corroboration across at least two publishers")
         date = c.get("date")
         if date is not None and not re.fullmatch(r"\d{4}(?:-\d{2}(?:-\d{2})?)?", str(date)):
             raise Blocked("EVIDENCE_INVALID", "Invalid timeline date; use ISO date or null for unknown")
+        if date is not None:
+            try:
+                datetime.strptime(str(date), {4: "%Y", 7: "%Y-%m", 10: "%Y-%m-%d"}[len(str(date))])
+            except ValueError:
+                raise Blocked("EVIDENCE_INVALID", "Timeline date does not exist in the calendar") from None
     return claims
 
 

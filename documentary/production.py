@@ -59,16 +59,29 @@ async def edge_voice(text, path, voice):
         group.append(word)
     if group:
         cues.append({"start": group[0]["start"], "end": group[-1]["end"], "text": "".join(w["text"] for w in group)})
-    # Preserve Traditional Chinese input in captions. Only punctuation may differ in word events.
+    # Word events often omit punctuation and spaces. Align their lexical
+    # characters to the ORIGINAL text so Traditional Chinese typography survives.
     normalized = lambda s: re.sub(r"[\W_]", "", s)
     if normalized("".join(c["text"] for c in cues)) != normalized(text):
         raise Blocked("CAPTION_TEXT_MISMATCH", "Word events do not reproduce narration text")
+    positions = [i for i, ch in enumerate(text) if normalized(ch)]
+    consumed, begin = 0, 0
+    for cue in cues:
+        consumed += len(normalized(cue["text"]))
+        end = positions[consumed] if consumed < len(positions) else len(text)
+        cue["text"] = text[begin:end].strip()
+        begin = end
     return cues
 
 
 def synthesize(text, dest, engine="edge", voice="zh-TW-YunJheNeural"):
     if engine == "edge":
         cues = asyncio.run(edge_voice(text, dest, voice))
+        # MP3 container duration includes encoder delay/padding. Measure decoded
+        # PCM instead; this is also the narration used by the final edit.
+        pcm = dest.with_suffix(".wav")
+        command(["ffmpeg", "-v", "error", "-y", "-i", dest, "-ar", "48000", "-ac", "1", pcm])
+        dest = pcm
     elif engine == "kokoro":
         try:
             from kokoro_voice import synthesize as kokoro
@@ -96,7 +109,7 @@ def concat_audio(paths, dest):
     # Absolute paths are written by us, never interpreted by a shell.
     manifest = dest.with_suffix(".concat.txt")
     manifest.write_text("".join("file '" + str(Path(p).resolve()).replace("'", "'\\''") + "'\n" for p in paths))
-    command(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", manifest, "-ar", "24000", "-ac", "1", dest])
+    command(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", manifest, "-ar", "48000", "-ac", "1", dest])
 
 
 def stamp(seconds, ass=False):
@@ -141,7 +154,6 @@ def render_scene(scene, audio, shots, work):
     args = ["ffmpeg", "-v", "error", "-y", "-threads", "2"]
     for shot in shots:
         args += ["-ss", shot["start"], "-t", shot["end"]-shot["start"], "-i", shot["path"]]
-    args += ["-i", audio["path"]]
     ass = work / f"captions-{scene['id']}.ass"
     ass_file(ass, audio["cues"], audio["seconds"], scene["info"])
     # Escape ffmpeg filter syntax even when output directory contains apostrophes or colons.
@@ -152,9 +164,9 @@ def render_scene(scene, audio, shots, work):
     filters.append("".join(f"[v{i}]" for i in range(len(shots))) + f"concat=n={len(shots)}:v=1:a=0,ass=filename='{escaped}'[v]")
     out = work / f"scene-{scene['id']}.mp4"
     args += ["-filter_complex_threads", "2", "-filter_complex", ";".join(filters),
-             "-map", "[v]", "-map", f"{len(shots)}:a:0", "-t", audio["seconds"],
-             "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-c:v", "libx264", "-threads", "2", "-preset", "veryfast",
-             "-crf", "22", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", out]
+             "-map", "[v]", "-an", "-t", audio["seconds"],
+             "-c:v", "libx264", "-threads", "2", "-preset", "veryfast",
+             "-crf", "22", "-movflags", "+faststart", out]
     command(args, timeout=900)
     return out
 
@@ -171,9 +183,20 @@ def render(script, narration, timeline, out):
     validate_cues(cues, offset)
     (out / "documentary.srt").write_text("\n".join(f"{i}\n{stamp(c['start'])} --> {stamp(c['end'])}\n{c['text']}\n" for i,c in enumerate(cues,1)), encoding="utf-8")
     manifest = work / "video.concat.txt"
-    manifest.write_text("".join("file '"+str(p.resolve()).replace("'", "'\\''")+"'\n" for p in parts))
+    # Scene container durations can be rounded to video frames. Set each start
+    # from measured narration, keeping the same timeline as the burnt captions.
+    manifest.write_text("".join("file '"+str(p.resolve()).replace("'", "'\\''")+f"'\nduration {a['seconds']:.9f}\n" for p,a in zip(parts,narration,strict=True)))
+    voice = work / "narration.wav"
+    concat_audio([a["path"] for a in narration], voice)
+    if abs(duration(voice)-offset) > 0.01:
+        raise Blocked("NARRATION_TIMING", "Decoded narration differs from measured scene timeline; no video is released")
     candidate = out / "candidate.mp4"
-    command(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", manifest, "-c", "copy", "-movflags", "+faststart", candidate], timeout=300)
+    # Encode AAC ONCE. Per-scene AAC concatenation accumulates decoder padding
+    # even when ffprobe's container duration appears correct.
+    command(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", manifest,
+             "-i", voice, "-map", "0:v:0", "-map", "1:a:0", "-t", offset,
+             "-c:v", "copy", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-c:a", "aac", "-ar", "48000", "-ac", "1",
+             "-b:a", "160k", "-movflags", "+faststart", candidate], timeout=300)
     return candidate, cues
 
 
@@ -187,6 +210,12 @@ def inspect_media(path, expected_seconds, cues, min_seconds=600, max_seconds=900
         failures.append("Output must contain 1080p H.264 video and AAC narration")
     if not min_seconds <= seconds <= max_seconds or abs(seconds-expected_seconds) > 1:
         failures.append("Measured runtime outside requested range or A/V duration drift")
+    try:
+        stream_durations = [float(s["duration"]) for s in (video,audio)]
+        if any(not math.isfinite(d) for d in stream_durations) or abs(stream_durations[0]-stream_durations[1]) > 0.15:
+            failures.append("Audio/video stream duration mismatch")
+    except (KeyError, ValueError, TypeError):
+        failures.append("Audio/video stream duration unavailable")
     try:
         validate_cues(cues, seconds)
     except Blocked as exc:
@@ -206,8 +235,17 @@ def inspect_media(path, expected_seconds, cues, min_seconds=600, max_seconds=900
     peak = re.search(r"max_volume: ([-\w.]+) dB", p.stderr)
     if not peak or float(peak[1]) < -35:
         failures.append("Narration peak missing or inaudible")
+    # FFmpeg may print an empty probe filter's n_samples=0 before the real
+    # decoder filter's final statistics. Use the completed filter's last count.
+    sample_counts = re.findall(r"n_samples:\s+(\d+)", p.stderr)
+    decoded_seconds = None
+    if sample_counts and audio.get("sample_rate") and audio.get("channels"):
+        decoded_seconds = int(sample_counts[-1])/(int(audio["sample_rate"])*int(audio["channels"]))
+    if decoded_seconds is None or abs(decoded_seconds-expected_seconds) > 0.15:
+        failures.append("Decoded narration length differs from measured timeline")
     return {"passed": not failures, "failures": failures, "seconds": seconds,
             "expected_seconds": expected_seconds, "caption_cues": len(cues), "full_decode": p.returncode == 0,
+            "decoded_audio_seconds": decoded_seconds,
             "scope": "technical checks and prior automated evidence/visual gates; not a human editorial or legal review"}
 
 

@@ -1,5 +1,4 @@
 """Synthetic fixtures test mechanics only; they are NEVER real research/gameplay results."""
-import copy
 import json
 from pathlib import Path
 
@@ -70,8 +69,8 @@ def test_arbitrary_chinese_topic_dynamic_translation():
 def evidence():
     # These sentences are deliberately labeled fixtures, not asserted game facts.
     text = "Synthetic test evidence only. This is a fictional fixture sentence for citation validation."
-    sources = [{"id": "S1", "url": "https://first.example.org/story", "text": text},
-               {"id": "S2", "url": "https://second.example.net/story", "text": text}]
+    sources = [{"id": "S1", "url": "https://first.example.org/story", "text": text + " Publisher one context."},
+               {"id": "S2", "url": "https://second.example.net/story", "text": text + " Publisher two context."}]
     claims = [{"id": f"C{i}", "statement": f"測試資料{i}，非真實研究", "date": None,
                "evidence": [{"source_id": "S1", "quote": text}, {"source_id": "S2", "quote": text}]} for i in range(4)]
     return sources, claims

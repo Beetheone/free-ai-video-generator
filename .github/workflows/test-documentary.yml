@@ -2,7 +2,12 @@ name: Documentary tests
 on:
   pull_request:
   push:
-    branches: [main]
+    paths:
+      - 'documentary/**'
+      - 'tests/**'
+      - 'requirements*.txt'
+      - 'topic_pipeline.py'
+      - '.github/workflows/**'
 permissions:
   contents: read
 jobs:

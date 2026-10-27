@@ -1,6 +1,8 @@
 name: One Topic Game Documentary
 
 on:
+  push:
+    paths: ['config/topics.json']
   workflow_dispatch:
     inputs:
       topic:
@@ -75,6 +77,14 @@ jobs:
           sudo apt-get install -y espeak-ng
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
           python -m pip install 'kokoro>=0.9.4,<1' 'misaki[zh]>=0.8.2,<1' soundfile
+      - name: Record prerequisite diagnosis without network calls
+        if: steps.queue.outputs.active == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL || 'https://models.github.ai/inference' }}
+          TTS: ${{ inputs.tts || 'edge' }}
+        run: python -m documentary.doctor --tts "$TTS" --out output/environment-diagnosis.json
       - name: Produce and enforce all gates
         if: steps.queue.outputs.active == 'true'
         env:
@@ -93,12 +103,32 @@ jobs:
           else
             python topic_pipeline.py --topics-file config/topics.json --minutes "$MINUTES" --tts "$TTS"
           fi
+      - name: Publish diagnostic summary
+        if: always() && steps.queue.outputs.active == 'true'
+        run: |
+          python - <<'PY'
+          import html, json, os
+          from pathlib import Path
+          reports = sorted(Path('output/documentaries').glob('*/qa_report.json'))
+          chunks = ['# Documentary run results\n\n']
+          if not reports:
+              chunks.append('No production report was created. Check installation and prerequisite diagnosis.\n\n')
+          for path in reports:
+              report = json.loads(path.read_text(encoding='utf-8'))
+              chunks.append('<pre>' + html.escape(json.dumps(report, ensure_ascii=False, indent=2)) + '</pre>\n\n')
+          diagnosis = Path('output/environment-diagnosis.json')
+          if diagnosis.exists():
+              chunks.append('<details><summary>Prerequisite metadata (does not prove service readiness)</summary><pre>' + html.escape(diagnosis.read_text(encoding='utf-8')) + '</pre></details>\n')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as summary:
+              summary.write(''.join(chunks))
+          PY
       - name: Upload finished output and diagnostic reports
         if: always() && steps.queue.outputs.active == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: game-documentary-${{ github.run_id }}
           path: |
+            output/environment-diagnosis.json
             output/documentaries/**/documentary.mp4
             output/documentaries/**/documentary.srt
             output/documentaries/**/thumbnail.jpg

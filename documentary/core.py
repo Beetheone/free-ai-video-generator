@@ -90,10 +90,15 @@ class Model:
         self.name = os.getenv("LLM_MODEL", "openai/gpt-4.1")
         self.key = os.getenv("LLM_API_KEY") or os.getenv("GH_TOKEN") or os.getenv("GITHUB_TOKEN")
         self.calls = 0
-        self.max_calls = int(os.getenv("LLM_MAX_CALLS", "180"))
+        try:
+            self.max_calls = int(os.getenv("LLM_MAX_CALLS", "180"))
+            self.interval = float(os.getenv("LLM_MIN_INTERVAL", "7" if "models.github.ai" in self.base else "0"))
+            if not 1 <= self.max_calls <= 1000 or not math.isfinite(self.interval) or not 0 <= self.interval <= 60:
+                raise ValueError
+        except ValueError:
+            raise Blocked("MODEL_CONFIG", "LLM_MAX_CALLS must be 1–1000 and LLM_MIN_INTERVAL a finite 0–60 seconds") from None
         self.usage = {"prompt_tokens": 0, "completion_tokens": 0}
         self.last_call = 0
-        self.interval = float(os.getenv("LLM_MIN_INTERVAL", "7" if "models.github.ai" in self.base else "0"))
 
     def json(self, instruction, payload, images=()):
         if not self.key:
@@ -135,7 +140,10 @@ class Model:
 
 
 def command(args, timeout=300):
-    p = subprocess.run([str(a) for a in args], capture_output=True, text=True, timeout=timeout)
+    try:
+        p = subprocess.run([str(a) for a in args], capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        raise Blocked("MEDIA_TIMEOUT", f"{Path(str(args[0])).name} exceeded {timeout}s; no incomplete output is released") from None
     if p.returncode:
         raise Blocked("MEDIA_COMMAND", f"{args[0]} failed: {p.stderr[-1600:]}")
     return p.stdout
