@@ -24,6 +24,13 @@ jobs:
           pip install -r requirements.txt
           pip install piper-tts opencc-python-reimplemented
 
+      - name: Download Chinese voice model
+        run: |
+          mkdir -p models
+          curl --fail --location --retry 3 --output models/zh_CN-huayan-medium.onnx "https://huggingface.co/rhasspy/piper-voices/resolve/main/zh/zh_CN/huayan/medium/zh_CN-huayan-medium.onnx"
+          curl --fail --location --retry 3 --output models/zh_CN-huayan-medium.onnx.json "https://huggingface.co/rhasspy/piper-voices/resolve/main/zh/zh_CN/huayan/medium/zh_CN-huayan-medium.onnx.json"
+          test $(wc -c < models/zh_CN-huayan-medium.onnx) -gt 50000000
+
       - name: Render video
         env:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
