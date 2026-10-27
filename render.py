@@ -8,6 +8,7 @@ import requests
 from PIL import Image,ImageDraw,ImageFont
 from media_assets import try_image
 from open_video import fetch_video
+from pixabay_video import fetch_pixabay_video
 ROOT=Path(__file__).parent; OUT=ROOT/'output';OUT.mkdir(exist_ok=True)
 SCENES=json.loads((ROOT/'scenes.json').read_text('utf-8'))
 FONT='/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc'
@@ -63,6 +64,8 @@ def main():
    speed=max(1,duration/(target-0.2))
    af=f'atempo={speed:.5f},apad=whole_dur={target:.3f},atrim=duration={target:.3f}'
    gotstock=stock_video(s['stock_query'],stock)
+   if not gotstock:
+    gotstock=fetch_pixabay_video(s['stock_query'],stock,credits,i)
    if not gotstock:
     gotstock=fetch_video(s['stock_query'],stock,credits,i)
     if gotstock:commons_video_count+=1
