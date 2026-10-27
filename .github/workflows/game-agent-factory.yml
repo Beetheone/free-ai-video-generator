@@ -1,0 +1,37 @@
+name: Game Documentary Agent Factory
+
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: 'English-language game event to research'
+        required: true
+        default: 'Pokemon Red Mew glitch'
+      scenes_file:
+        description: 'Committed scenes JSON (existing scenes.json may be used for pipeline smoke test)'
+        required: true
+        default: 'scenes.json'
+  schedule:
+    - cron: '20 1 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  research-and-plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Python
+        run: python -m py_compile agent_factory.py
+      - name: Run research and storyboard agents
+        run: |
+          python agent_factory.py --topic "${{ inputs.topic || 'video game speedrun world records' }}" --scenes "${{ inputs.scenes_file || 'scenes.json' }}"
+      - name: Upload QA and editorial planning package
+        uses: actions/upload-artifact@v4
+        with:
+          name: game-agent-planning
+          path: agent_output/*.json
+          if-no-files-found: error
+          retention-days: 7
