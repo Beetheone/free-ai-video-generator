@@ -4,14 +4,14 @@
 
 ## GitHub 網頁操作
 
-1. 合併 PR 後進入 [One Topic Game Documentary](https://github.com/Beetheone/free-ai-video-generator/actions/workflows/one-topic-documentary.yml)，選 **Run workflow**。
+1. 進入 [One Topic Game Documentary](https://github.com/Beetheone/free-ai-video-generator/actions/workflows/one-topic-documentary.yml)，選 **Run workflow**。合併前選分支 `feat/topic-documentary-pipeline`，合併後選 `main`。
 2. 輸入「寶可夢紅綠版，推卡車抓夢幻的都市傳說」等題材，選分鐘與旁白。無須自己寫腳本、分鏡、搜尋詞。
 3. 先在 repository **Settings → Secrets and variables → Actions** 安全設定 Secret `LLM_API_KEY`；在 Variables 設定 `LLM_BASE_URL`（HTTPS、含相容 API 基底路徑）與 `LLM_MODEL`。模型必須同時支援圖片輸入、JSON object 與 chat completions。這是一次性的環境設定；每次產片只輸入題材。勿在議題、程式碼或聊天貼金鑰。
 4. 可選 Gemini 免費額度方案：在 [Google AI Studio](https://aistudio.google.com/apikey) 取得適用的 API key，`LLM_BASE_URL` 設 `https://generativelanguage.googleapis.com/v1beta/openai`，`LLM_MODEL` 可選官方 SDK 目前示例的 `gemini-flash-latest`。需依帳戶／區域確認模型支援、免費資格及當期配額；alias 的實際模型可能改變，本次尚未取得金鑰實測 Gemini。也可選另一相容提供者並設定其端點、模型與金鑰；程式要求明確指定提供者，避免將既有通用 key 自動傳給另一服務。
 5. Actions 成功後，Artifacts 內有 `documentary.mp4`、`documentary.srt`、`thumbnail.jpg`、`ATTRIBUTION.md`、`sources.json` 與審核報告。將素材署名與授權連結放入 YouTube 說明。系統不會自動上傳 YouTube。
 6. 失敗時仍上傳 JSON。先看 `qa_report.json` 的 `failed_stage`、`blocker.code`、`blocker.detail`，再查看該階段報告。`work/`、原始素材與未通過的 `candidate.mp4` 不會當成成品上傳。
 
-新 workflow 的手動入口需先存在於預設分支；功能分支也能透過推送 `config/topics.json` 變更觸發批次。本次已實際在 GitHub Actions 執行測試與寶可夢題材，結果詳見 [VALIDATION.md](VALIDATION.md)，不可把測試工作流程成功當成影片製作成功。
+此 repository 的預設分支已有同名 workflow，手動執行時可選功能分支使用新實作；直接選尚未合併的 `main` 仍是舊研究器。功能分支也能透過推送 `config/topics.json` 變更觸發批次。本次已實際在 GitHub Actions 執行測試與寶可夢題材，結果詳見 [VALIDATION.md](VALIDATION.md)，不可把測試工作流程成功當成影片製作成功。
 
 **GitHub Models 已退役。** [GitHub 官方文件](https://github.com/github/docs/blob/main/content/github-models/index.md) 說明，自 **2026-07-30** 起推論 API、模型目錄與 BYOK 已完全停止。程式會拒絕舊端點，回傳 `MODEL_PROVIDER_RETIRED`；新增 GitHub token 或 `models: read` 無法修復。GitHub Actions 執行平台仍可使用，與已退役的模型服務不同。
 

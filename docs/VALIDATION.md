@@ -90,3 +90,7 @@ Actionlint v1.7.12 來自官方 GitHub release，下載 archive 與官方 checks
 HTTP 200、有效 JSON、模型輸出 schema、主張證據、合法素材及影片品質是不同的驗收門檻，沒有任何一項可代替其他項目。更新金鑰需求並不代表金鑰已配置，保存環境草稿也不代表它已套用或發布。
 
 移除退役預設與新增提供者安全設定檢查後，本機最終檢查為 **70 passed in 15.02s**，Actionlint 與 `git diff --check` 亦通過。新增測試證明即使只有 GitHub token，也不會自動向另一家模型服務傳送它；設定缺少端點／模型名稱時亦不會傳送通用 API key。
+
+[最終題材前置檢查，106d42e](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40598629461) 的公開註記實際確認三項設定都缺少：`LLM_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL`。退出 2，沒有發送推論請求或製作影片。這個結果是設定不足的明確阻擋，不是成功產片；也不是要求新增 GitHub token。
+
+完成驗證後已將 `config/topics.json` 恢復 `[]`，避免每日反覆執行測試題材。PR API 仍受這台 Codex 環境尚未套用的網路政策阻擋；完整 PR 描述已保存在 [PR_DESCRIPTION.md](PR_DESCRIPTION.md)。
