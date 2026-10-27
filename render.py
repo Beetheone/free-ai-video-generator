@@ -45,14 +45,15 @@ def stock_video(q,out):
  except Exception as e:print('Optional footage failed:',str(e)[:150])
  return False
 async def voice(text,out):
- await edge_tts.Communicate(text,'zh-TW-HsiaoChenNeural',rate='+12%').save(str(out))
+ from piper_voice import synthesize
+ await asyncio.to_thread(synthesize,text,out)
 def main():
  clips=[];cues=[];time=0;failures=[];stock_count=0
  work=Path(tempfile.mkdtemp())
  try:
   for i,s in enumerate(SCENES,1):
    print('Rendering scene',i,'/',len(SCENES),flush=True)
-   audio=work/f'a{i}.mp3';shot=work/f'shot{i}.jpg';stock=work/f'stock{i}.mp4';video=work/f'v{i}.mp4'
+   audio=work/f'a{i}.wav';shot=work/f'shot{i}.jpg';stock=work/f'stock{i}.mp4';video=work/f'v{i}.mp4'
    asyncio.run(voice(s['narration'],audio))
    duration=length(audio)
    # Favor intelligibility. Audio >15 seconds is accelerated only moderately;
