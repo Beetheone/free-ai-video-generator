@@ -1,0 +1,40 @@
+name: One Topic Game Documentary
+
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: 'Only required input: real gaming event'
+        required: true
+        type: string
+      minutes:
+        description: 'Target minutes'
+        type: choice
+        default: '12'
+        options:
+          - '12'
+          - '15'
+          - '10'
+
+permissions:
+  contents: read
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check controller syntax
+        run: python -m py_compile topic_pipeline.py
+      - name: Run topic research and feasibility gate
+        env:
+          TOPIC: ${{ inputs.topic }}
+          MINUTES: ${{ inputs.minutes }}
+        run: python topic_pipeline.py --topic "$TOPIC" --minutes "$MINUTES"
+      - name: Export research plan and blockers
+        uses: actions/upload-artifact@v4
+        with:
+          name: game-documentary-topic-plan
+          path: agent_output/topic_plan.json
+          if-no-files-found: error
