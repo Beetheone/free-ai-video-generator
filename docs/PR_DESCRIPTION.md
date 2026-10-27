@@ -8,7 +8,7 @@ Narration is measured as decoded PCM and encoded to AAC once for the whole edit,
 
 ## Provider configuration
 
-Real Actions runs exposed an invalid default: GitHub officially retired GitHub Models, including inference, on 2026-07-30. That provider is now rejected explicitly. Configure an active text+vision provider with repository Secret `LLM_API_KEY` and Variables `LLM_BASE_URL` / `LLM_MODEL`; no key is sent to an implicit provider and GitHub tokens are not reused as other providers' keys. Gemini is a possible free-tier option where eligible, not a promise of sufficient free daily capacity.
+Real Actions runs exposed an invalid default: GitHub officially retired GitHub Models, including inference, on 2026-07-30. That provider is now rejected explicitly. The user's GPT choice is recorded in config/model.json (OpenAI / gpt-4.1-mini), so only repository Secret `LLM_API_KEY` is required for these defaults. Optional `LLM_BASE_URL` / `LLM_MODEL` overrides work from Variables or Secrets. Keys are never read from configuration files or sent to a provider without explicit configuration; GitHub tokens are not reused as model keys. Gemini remains a possible free-tier alternative where eligible, not a promise of sufficient daily capacity.
 
 ## Validation
 
