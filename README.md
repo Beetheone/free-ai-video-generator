@@ -1,5 +1,17 @@
 # Free AI Video Generator
 
+## 中文遊戲紀錄片（新流程，仍需真實服務驗收）
+
+到 [Actions → One Topic Game Documentary](https://github.com/Beetheone/free-ai-video-generator/actions/workflows/one-topic-documentary.yml)，輸入中文題材與 10、12 或 15 分鐘。腳本與搜尋詞由系統產生，不必手寫分鏡。流程包含中英文研究、原文引句與跨來源審核、原創繁體中文腳本、Commons 授權遊戲影片、實際影格匹配、中文旁白、字幕、1080p MP4、封面與來源報告。
+
+**尚未證明能自動完成任意題材的高品質紀錄片。** 本次已驗證實際渲染與拒絕不合格內容的測試；雲端實測的搜尋、模型、Commons、配音均被目前網路政策阻擋。缺少合法且相符的畫面時會回傳失敗與報告，沒有文字卡、無關素材或示範影片補位。詳見 [操作、驗證結果與限制](docs/DOCUMENTARY.md) 和 [第三方評估](docs/THIRD_PARTY.md)。
+
+預設使用 GitHub Models（需帳戶／組織可用權限，免費額度有限）及 Edge 台灣中文旁白。可另設定 OpenAI 相容的文字＋視覺模型，或選 Kokoro CPU 普通話。每日台灣時間 09:20 排程與最多三題批次已接上；[config/topics.json](config/topics.json) 預設空陣列，避免未設定就消耗額度。
+
+原本 `render.py`、Kokoro、Pixabay、Wikimedia、Piper 與以下舊工作流程均保留。下方介紹的是既有腳本／圖片動畫流程，不代表新遊戲紀錄片的品質或免費保證。
+
+---
+
 Turn a plain-text script into a fully narrated, long-form video — automatically, for free.
 
 **Pipeline:** your script → AI voiceover (edge-tts) → word-accurate captions → AI-generated

@@ -1,5 +1,7 @@
 # Game Documentary Agent Factory (free cloud MVP)
 
+> 此文件描述舊的人工腳本規劃器 `agent_factory.py`。新的題材入口為 `topic_pipeline.py` 與 **One Topic Game Documentary**，詳見 [DOCUMENTARY.md](docs/DOCUMENTARY.md)。舊規劃器不再每天執行考古示例；新的每日排程讀取 `config/topics.json`。這兩個流程的結果與驗證範圍不同。
+
 This is a **research/planning + footage matching + QA gate** pipeline, not yet an autonomous uploaded-video creator. Your original `Render Chinese documentary` workflow remains unchanged.
 
 ## Start in GitHub web

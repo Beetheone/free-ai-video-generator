@@ -4,37 +4,105 @@ on:
   workflow_dispatch:
     inputs:
       topic:
-        description: '遊戲題材（可輸入繁體中文、簡體中文或英文）'
+        description: '繁體中文遊戲題材（缺乏可信資料或合法畫面會明確失敗）'
         required: true
         type: string
       minutes:
-        description: 'Target minutes'
+        description: '目標分鐘數'
         type: choice
         default: '12'
-        options:
-          - '12'
-          - '15'
-          - '10'
+        options: ['10', '12', '15']
+      tts:
+        description: '旁白：Edge 台灣中文；Kokoro CPU 普通話'
+        type: choice
+        default: edge
+        options: [edge, kokoro]
+  schedule:
+    # 09:20 Asia/Taipei. Queue is empty until configured.
+    - cron: '20 1 * * *'
 
 permissions:
   contents: read
+  models: read
+
+concurrency:
+  group: game-documentary-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  research:
+  produce:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 180
+    env:
+      PYTHONUNBUFFERED: '1'
+      OMP_NUM_THREADS: '2'
+      TOKENIZERS_PARALLELISM: 'false'
     steps:
       - uses: actions/checkout@v4
-      - name: Check controller syntax
-        run: python -m py_compile topic_pipeline.py
-      - name: Run topic research and feasibility gate
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-documentary.txt
+      - name: Check daily queue
+        id: queue
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          python - <<'PY'
+          import json, os
+          topics = json.load(open('config/topics.json', encoding='utf-8'))
+          assert isinstance(topics, list) and len(topics) <= 3
+          assert all(isinstance(t, str) and t.strip() and len(t) <= 500 for t in topics)
+          active = os.environ['EVENT'] == 'workflow_dispatch' or bool(topics)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write('active=' + str(active).lower() + '\n')
+          if not active:
+              print('Daily queue empty; no production attempted.')
+          PY
+      - name: Install CPU tools
+        if: steps.queue.outputs.active == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-noto-cjk
+          python -m pip install -r requirements-documentary.txt
+      - name: Optional Kokoro CPU
+        if: steps.queue.outputs.active == 'true' && inputs.tts == 'kokoro'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y espeak-ng
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'kokoro>=0.9.4,<1' 'misaki[zh]>=0.8.2,<1' soundfile
+      - name: Produce and enforce all gates
+        if: steps.queue.outputs.active == 'true'
         env:
           TOPIC: ${{ inputs.topic }}
-          MINUTES: ${{ inputs.minutes }}
-        run: python topic_pipeline.py --topic "$TOPIC" --minutes "$MINUTES"
-      - name: Export research plan and blockers
+          MINUTES: ${{ inputs.minutes || '12' }}
+          TTS: ${{ inputs.tts || 'edge' }}
+          EVENT: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL || 'https://models.github.ai/inference' }}
+          LLM_MODEL: ${{ vars.LLM_MODEL || 'openai/gpt-4.1' }}
+          LLM_MAX_CALLS: '180'
+        run: |
+          if [ "$EVENT" = workflow_dispatch ]; then
+            python topic_pipeline.py --topic "$TOPIC" --minutes "$MINUTES" --tts "$TTS"
+          else
+            python topic_pipeline.py --topics-file config/topics.json --minutes "$MINUTES" --tts "$TTS"
+          fi
+      - name: Upload finished output and diagnostic reports
+        if: always() && steps.queue.outputs.active == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: game-documentary-topic-plan
-          path: agent_output/topic_plan.json
-          if-no-files-found: error
+          name: game-documentary-${{ github.run_id }}
+          path: |
+            output/documentaries/**/documentary.mp4
+            output/documentaries/**/documentary.srt
+            output/documentaries/**/thumbnail.jpg
+            output/documentaries/**/ATTRIBUTION.md
+            output/documentaries/**/*.json
+          if-no-files-found: warn
+          retention-days: 7

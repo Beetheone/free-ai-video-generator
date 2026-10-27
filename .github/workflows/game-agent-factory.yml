@@ -11,8 +11,6 @@ on:
         description: 'Committed scenes JSON (existing scenes.json may be used for pipeline smoke test)'
         required: true
         default: 'scenes.json'
-  schedule:
-    - cron: '20 1 * * *'
 
 permissions:
   contents: read
