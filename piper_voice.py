@@ -3,7 +3,7 @@ from pathlib import Path
 import subprocess
 from opencc import OpenCC
 
-VOICE = "zh_CN-huayan-medium"
+VOICE = str(Path(__file__).parent / "models" / "zh_CN-huayan-medium.onnx")
 CONVERTER = OpenCC("t2s")
 
 def synthesize(text, output_file):
