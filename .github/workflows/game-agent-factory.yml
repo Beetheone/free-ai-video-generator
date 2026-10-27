@@ -26,8 +26,10 @@ jobs:
       - name: Check Python
         run: python -m py_compile agent_factory.py
       - name: Run research and storyboard agents
-        run: |
-          python agent_factory.py --topic "${{ inputs.topic || 'video game speedrun world records' }}" --scenes "${{ inputs.scenes_file || 'scenes.json' }}"
+        env:
+          AGENT_TOPIC: ${{ inputs.topic || 'video game speedrun world records' }}
+          AGENT_SCENES: ${{ inputs.scenes_file || 'scenes.json' }}
+        run: python agent_factory.py --topic "$AGENT_TOPIC" --scenes "$AGENT_SCENES"
       - name: Upload QA and editorial planning package
         uses: actions/upload-artifact@v4
         with:
