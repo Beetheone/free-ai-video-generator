@@ -116,6 +116,12 @@ jobs:
           for path in reports:
               report = json.loads(path.read_text(encoding='utf-8'))
               chunks.append('<pre>' + html.escape(json.dumps(report, ensure_ascii=False, indent=2)) + '</pre>\n\n')
+              if report.get('status') != 'COMPLETE_AUTOMATED_CHECKS':
+                  blocker = report.get('blocker', {})
+                  message = report.get('failed_stage', 'unknown') + ': ' + blocker.get('code', 'UNKNOWN') + ' — ' + blocker.get('detail', 'Inspect qa_report.json')
+                  # Escape workflow-command data; topic/provider data cannot inject commands.
+                  message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                  print('::error title=Documentary blocked::' + message)
           diagnosis = Path('output/environment-diagnosis.json')
           if diagnosis.exists():
               chunks.append('<details><summary>Prerequisite metadata (does not prove service readiness)</summary><pre>' + html.escape(diagnosis.read_text(encoding='utf-8')) + '</pre></details>\n')
