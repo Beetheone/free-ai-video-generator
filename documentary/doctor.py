@@ -11,6 +11,7 @@ from urllib.parse import urlsplit
 
 from .core import save
 from .production import FONT
+from .settings import model_settings
 
 
 def recovery(code):
@@ -70,7 +71,12 @@ def diagnose(engine="edge", policy_path=Path("/etc/codex/network-policy.json")):
         except (ValueError, OSError):
             policy_error = "Policy snapshot is unreadable or malformed"
     hosts = [] if policy is None else [e["host"] for e in policy.get("egress_rules", []) if isinstance(e, dict) and isinstance(e.get("host"), str)]
-    base = os.getenv("LLM_BASE_URL", "").strip()
+    config_error = None
+    try:
+        base, name = model_settings()
+    except (ValueError, TypeError, OSError):
+        base, name = "", ""
+        config_error = "Invalid non-secret provider configuration"
     model_host = urlsplit(base).hostname
     services = {"model": [model_host], "research": ["www.bing.com"],
                 "footage": ["commons.wikimedia.org", "upload.wikimedia.org"],
@@ -95,14 +101,17 @@ def diagnose(engine="edge", policy_path=Path("/etc/codex/network-policy.json")):
         missing.append("LLM_API_KEY for the configured model provider; a GitHub token is not a Gemini API key")
     if not base or not model_host:
         missing.append("LLM_BASE_URL explicitly selecting an active HTTPS text+vision API provider")
-    if not os.getenv("LLM_MODEL", "").strip():
+    if not name:
         missing.append("LLM_MODEL supported by the chosen provider")
+    if config_error:
+        missing.append(config_error)
     if model_host in {"models.github.ai", "models.inference.ai.azure.com"}:
         missing.append("active model provider; GitHub Models inference retired on 2026-07-30")
     blocked = bool(missing or denied)
     return {"status": "PREREQUISITES_BLOCKED" if blocked else "PRECHECKS_PASS_SERVICE_TESTS_REQUIRED",
             "scope": "Metadata and startup policy snapshot only. Not a current runtime policy or external service readiness proof.",
             "python": platform.python_version(), "tools": tools, "modules": modules, "cjk_font": font,
+            "model_provider": {"hostname": model_host, "model": name or None, "repository_config": "config/model.json"},
             "credential_variable_presence": credentials, "policy_snapshot_available": policy is not None,
             "policy_snapshot_error": policy_error, "services": results, "missing_prerequisites": missing,
             "domains_denied_by_startup_snapshot": denied,

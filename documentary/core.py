@@ -12,6 +12,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import requests
+from .settings import model_settings
 
 
 class Blocked(RuntimeError):
@@ -86,11 +87,13 @@ class Web:
 
 
 class Model:
-    def __init__(self):
+    def __init__(self, config_path=None):
         # An endpoint must be chosen explicitly before a generic API key is
         # transmitted. Never silently send an existing key to a new provider.
-        self.base = os.getenv("LLM_BASE_URL", "").rstrip("/")
-        self.name = os.getenv("LLM_MODEL", "").strip()
+        try:
+            self.base, self.name = model_settings(config_path)
+        except (ValueError, TypeError, OSError):
+            raise Blocked("MODEL_CONFIG", "Invalid non-secret provider configuration; check config/model.json or LLM_BASE_URL / LLM_MODEL without exposing credentials") from None
         # A GitHub token is for GitHub operations, not another provider's API.
         # GitHub Models itself retired on 2026-07-30 (official github/docs).
         self.key = os.getenv("LLM_API_KEY")
@@ -133,7 +136,18 @@ class Model:
         except requests.RequestException as exc:
             raise Blocked("MODEL_NETWORK", f"Model endpoint unavailable ({type(exc).__name__})") from None
         if r.status_code != 200:
-            raise Blocked("MODEL_UNAVAILABLE", f"Model HTTP {r.status_code}; check model access, rate quota, endpoint and credentials. Response body withheld.")
+            safe = []
+            try:
+                error = r.json().get("error", {})
+                if isinstance(error, dict):
+                    if error.get("code") in {"unsupported_parameter", "unsupported_value", "model_not_found", "invalid_api_key", "insufficient_quota", "rate_limit_exceeded", "context_length_exceeded", "billing_hard_limit_reached", "account_deactivated"}:
+                        safe.append("code="+error["code"])
+                    if error.get("param") in {"max_tokens", "max_completion_tokens", "temperature", "response_format", "model", "messages", "stream"}:
+                        safe.append("parameter="+error["param"])
+            except (ValueError, TypeError, AttributeError):
+                pass
+            detail = ("; " + ", ".join(safe)) if safe else ""
+            raise Blocked("MODEL_UNAVAILABLE", f"Model HTTP {r.status_code}{detail}; check model access, rate quota, endpoint and credentials. Response body withheld.")
         try:
             body = r.json()
         except ValueError:

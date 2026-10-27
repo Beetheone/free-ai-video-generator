@@ -80,8 +80,8 @@ jobs:
         if: steps.queue.outputs.active == 'true'
         env:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-          LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
-          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL || secrets.LLM_BASE_URL }}
+          LLM_MODEL: ${{ vars.LLM_MODEL || secrets.LLM_MODEL }}
           TTS: ${{ inputs.tts || 'edge' }}
         run: python -m documentary.doctor --tts "$TTS" --out output/environment-diagnosis.json
       - name: Produce and enforce all gates
@@ -92,8 +92,8 @@ jobs:
           TTS: ${{ inputs.tts || 'edge' }}
           EVENT: ${{ github.event_name }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-          LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
-          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL || secrets.LLM_BASE_URL }}
+          LLM_MODEL: ${{ vars.LLM_MODEL || secrets.LLM_MODEL }}
           LLM_MAX_CALLS: '180'
         run: |
           if [ "$EVENT" = workflow_dispatch ]; then

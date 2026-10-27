@@ -98,7 +98,7 @@ def test_retired_github_models_fails_without_requesting_more_tokens(monkeypatch,
     assert '2026-07-30' in exc.value.detail
 
 
-def test_generic_key_is_never_sent_to_an_implicit_provider(monkeypatch):
+def test_generic_key_is_never_sent_to_an_implicit_provider(monkeypatch, tmp_path):
     monkeypatch.setenv('LLM_API_KEY', 'fixture')
     monkeypatch.delenv('LLM_BASE_URL', raising=False)
     monkeypatch.delenv('LLM_MODEL', raising=False)
@@ -106,5 +106,5 @@ def test_generic_key_is_never_sent_to_an_implicit_provider(monkeypatch):
         pytest.fail('No provider was selected; do not transmit the key')
     monkeypatch.setattr('documentary.core.requests.post', forbidden)
     with pytest.raises(Blocked) as exc:
-        Model().json('fixture', {})
+        Model(config_path=tmp_path/'absent.json').json('fixture', {})
     assert exc.value.code == 'MODEL_CONFIG'
