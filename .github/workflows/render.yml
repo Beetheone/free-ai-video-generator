@@ -32,11 +32,20 @@ jobs:
           test $(wc -c < models/zh_CN-huayan-medium.onnx) -gt 50000000
 
       - name: Validate Python sources
-        run: python -m py_compile render.py media_assets.py open_video.py piper_voice.py
+        run: python -m py_compile render.py media_assets.py open_video.py pixabay_video.py piper_voice.py
+
+      - name: Restore Pixabay API cache
+        uses: actions/cache@v4
+        with:
+          path: .pixabay_cache
+          key: pixabay-queries-${{ github.run_id }}
+          restore-keys: |
+            pixabay-queries-
 
       - name: Render video
         env:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
         run: python render.py
 
       - uses: actions/upload-artifact@v4
