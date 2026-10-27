@@ -1,0 +1,482 @@
+[
+  {
+    "scene": 1,
+    "start": "00:00",
+    "end": "00:15",
+    "narration": "假如有一本書，被大火燒得像木炭，整整兩千年無人能翻開。現在有人告訴你，不必碰它，就能看見裡面寫了什麼。你會相信嗎？",
+    "visual": "黑色卷軸特寫，緩慢推近",
+    "stock_query": "charred ancient scroll",
+    "secondary_query": "charred ancient scroll cinematic",
+    "source_hint": "Vesuvius Challenge / Wikimedia Commons"
+  },
+  {
+    "scene": 2,
+    "start": "00:15",
+    "end": "00:30",
+    "narration": "這不是科幻電影。地點在義大利的赫庫蘭尼姆，主角是火山灰中倖存的古羅馬卷軸。它們沉默了近兩千年，如今終於開始說話。",
+    "visual": "古羅馬遺跡空拍",
+    "stock_query": "ancient roman ruins",
+    "secondary_query": "ancient roman ruins cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 3,
+    "start": "00:30",
+    "end": "00:45",
+    "narration": "真正令人驚訝的，不只是機器看見了文字。二零二六年，研究者甚至讀出一份卷軸倖存部分的連續內容，將失落的思想重新帶回世界。",
+    "visual": "古希臘文字逐步顯影",
+    "stock_query": "ancient greek manuscript",
+    "secondary_query": "ancient greek manuscript cinematic",
+    "source_hint": "Vesuvius Challenge / Wikimedia Commons"
+  },
+  {
+    "scene": 4,
+    "start": "00:45",
+    "end": "01:00",
+    "narration": "但要理解這一切，我們得回到西元七十九年。一場火山爆發，先毀掉了整座城市，卻意外保存了人類歷史中一座特殊的圖書館。",
+    "visual": "火山山體轉場",
+    "stock_query": "mount vesuvius volcano",
+    "secondary_query": "mount vesuvius volcano cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 5,
+    "start": "01:00",
+    "end": "01:15",
+    "narration": "西元七十九年，維蘇威火山猛烈噴發。火山碎屑與高溫氣體席捲附近的龐貝與赫庫蘭尼姆，人們熟悉的街道、房屋與生活，突然被埋在地下。",
+    "visual": "噴發煙柱與灰燼",
+    "stock_query": "volcano eruption ash",
+    "secondary_query": "volcano eruption ash cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 6,
+    "start": "01:15",
+    "end": "01:30",
+    "narration": "在赫庫蘭尼姆的一棟豪華別墅中，收藏著一批紙莎草書卷。當時的文字不是印在書頁上，而是寫在細長的紙莎草材料上，再一層層捲起。",
+    "visual": "別墅柱廊和書房示意",
+    "stock_query": "roman villa architecture",
+    "secondary_query": "roman villa architecture cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 7,
+    "start": "01:30",
+    "end": "01:45",
+    "narration": "火山的高溫使卷軸炭化，變成黑色而脆弱的物體。這是殘酷的巧合：它們因災難無法再被正常閱讀，也因災難被保存到了現代。",
+    "visual": "炭化紙張細節",
+    "stock_query": "burnt paper closeup",
+    "secondary_query": "burnt paper closeup cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 8,
+    "start": "01:45",
+    "end": "02:00",
+    "narration": "如果它們只是普通木炭，故事便到此結束。但卷軸內部或許還有希臘文、哲學辯論，甚至早已失傳的書。於是問題變成：誰能讀它？",
+    "visual": "黑暗古代圖書館示意",
+    "stock_query": "dark ancient library",
+    "secondary_query": "dark ancient library cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 9,
+    "start": "02:00",
+    "end": "02:15",
+    "narration": "十八世紀，考古工作者重新發現赫庫蘭尼姆以及這批卷軸。對研究者來說，這幾乎像找到一座跨越時空的資料庫，只是所有文件都被鎖住了。",
+    "visual": "考古挖掘工具特寫",
+    "stock_query": "archaeological excavation",
+    "secondary_query": "archaeological excavation cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 10,
+    "start": "02:15",
+    "end": "02:30",
+    "narration": "人們一度嘗試用機械方式緩緩展開卷軸。可是紙莎草早已極端脆弱，只要受力不均，珍貴的表面就可能碎裂，文字也跟著永久消失。",
+    "visual": "脆弱紙張微距",
+    "stock_query": "fragile old parchment",
+    "secondary_query": "fragile old parchment cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 11,
+    "start": "02:30",
+    "end": "02:45",
+    "narration": "有些卷軸被打開並留下殘片，但也因此失去了原本的結構。看得見與保得住，似乎只能選一個。這個難題困住一代又一代古典學者。",
+    "visual": "修復工作桌俯視",
+    "stock_query": "historical restoration tools",
+    "secondary_query": "historical restoration tools cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 12,
+    "start": "02:45",
+    "end": "03:00",
+    "narration": "直到數位影像技術成熟，研究者才提出反直覺的方法：不要在現實世界打開這本書，而是在電腦裡替它建立一個能展開的版本。",
+    "visual": "掃描儀轉場",
+    "stock_query": "computer tomography scanner",
+    "secondary_query": "computer tomography scanner cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 13,
+    "start": "03:00",
+    "end": "03:15",
+    "narration": "想像一顆高麗菜。你不需要把每片葉子剝下來，也能用掃描看見它們在內部的位置。卷軸的結構遠比高麗菜複雜，但數位解卷的概念相似。",
+    "visual": "高麗菜層次比喻動畫",
+    "stock_query": "cabbage cross section",
+    "secondary_query": "cabbage cross section cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 14,
+    "start": "03:15",
+    "end": "03:30",
+    "narration": "研究者首先用高解析度的 X 光斷層掃描，記錄卷軸裡一層又一層的材料。掃描結果不是一張照片，而是一個包含細微結構的三維資料體。",
+    "visual": "斷層掃描切片動畫",
+    "stock_query": "x ray tomography machine",
+    "secondary_query": "x ray tomography machine cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 15,
+    "start": "03:30",
+    "end": "03:45",
+    "narration": "接著，電腦必須追蹤彎曲、擠壓、破裂的紙莎草表面。每一層都可能貼在另一層上，就像揉成團又被燒焦的超薄地圖。",
+    "visual": "密集紙張層次示意",
+    "stock_query": "abstract layered paper",
+    "secondary_query": "abstract layered paper cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 16,
+    "start": "03:45",
+    "end": "04:00",
+    "narration": "等表面位置重建完成，再把彎曲的曲面攤成平面，才有機會讓隱藏的文字排列重新出現。這個步驟叫做虛擬展開，並不需要碰到實體卷軸。",
+    "visual": "網格逐步攤平成平面",
+    "stock_query": "digital mesh wireframe",
+    "secondary_query": "digital mesh wireframe cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 17,
+    "start": "04:00",
+    "end": "04:15",
+    "narration": "然而，能把紙張展平，還不等於能讀出字。最棘手的地方在於，古代墨水與紙莎草炭化後都含有碳，兩者在影像中的差別非常微弱。",
+    "visual": "幾乎看不到字的黑紙",
+    "stock_query": "black ink paper macro",
+    "secondary_query": "black ink paper macro cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 18,
+    "start": "04:15",
+    "end": "04:30",
+    "narration": "普通人看這些掃描，常常只會看到複雜的灰階紋理。但若文字真的留下細小的物理痕跡，電腦就有機會從海量像素中找出模式。",
+    "visual": "灰階紋理轉成影像格點",
+    "stock_query": "grayscale digital texture",
+    "secondary_query": "grayscale digital texture cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 19,
+    "start": "04:30",
+    "end": "04:45",
+    "narration": "這正是機器學習派上用場的地方。研究者用已知的墨跡或表面特徵訓練模型，讓它學習哪些訊號比較可能對應古代書寫。",
+    "visual": "影像模型辨識概念圖",
+    "stock_query": "machine learning visualization",
+    "secondary_query": "machine learning visualization cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 20,
+    "start": "04:45",
+    "end": "05:00",
+    "narration": "請注意，這不等於把問題丟給聊天機器人，請它憑空猜出一段古希臘文。真正的工作是從掃描中辨認墨跡，再由專家校對和解讀。",
+    "visual": "人員檢視螢幕資料",
+    "stock_query": "scientist computer lab",
+    "secondary_query": "scientist computer lab cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 21,
+    "start": "05:00",
+    "end": "05:15",
+    "narration": "二零二三年，維蘇威挑戰賽正式啟動。主辦方公開掃描資料，邀請世界各地研究者合作競賽，目標是在不破壞卷軸的情況下找回文字。",
+    "visual": "全球研究團隊合作示意",
+    "stock_query": "scientific collaboration laptops",
+    "secondary_query": "scientific collaboration laptops cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 22,
+    "start": "05:15",
+    "end": "05:30",
+    "narration": "參賽者各自改良表面辨識、影像處理和墨跡偵測方法。有人在尋找文字，有人在重建卷軸結構，也有人讓其他人的工具更容易被重複使用。",
+    "visual": "開源程式碼與影像資料",
+    "stock_query": "open source code screen",
+    "secondary_query": "open source code screen cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 23,
+    "start": "05:30",
+    "end": "05:45",
+    "narration": "最初的重大進展，是從被埋藏的卷軸內部辨認出希臘文字。小小幾個字母的意義極大，因為它證明了：人類可以在不打開紙卷的前提下讀到內容。",
+    "visual": "希臘字母從黑底浮現",
+    "stock_query": "ancient greek lettering",
+    "secondary_query": "ancient greek lettering cinematic",
+    "source_hint": "Vesuvius Challenge / Wikimedia Commons"
+  },
+  {
+    "scene": 24,
+    "start": "05:45",
+    "end": "06:00",
+    "narration": "二零二四年二月，主辦方宣布二零二三年度大獎得主。優勝團隊讀出一份卷軸約百分之五的內容，這是從幾乎零閱讀面積向前跨出的一大步。",
+    "visual": "數據從零到百分之五",
+    "stock_query": "research breakthrough celebration",
+    "secondary_query": "research breakthrough celebration cinematic",
+    "source_hint": "Vesuvius Challenge / Wikimedia Commons"
+  },
+  {
+    "scene": 25,
+    "start": "06:00",
+    "end": "06:15",
+    "narration": "當年得獎團隊包括尤瑟夫・納德、盧克・法里托與朱利安・席利格。他們的成果不是單靠某一個人或單一模型，而是建立在多年研究和共同工具之上。",
+    "visual": "研究者背影群像",
+    "stock_query": "researchers working computers",
+    "secondary_query": "researchers working computers cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 26,
+    "start": "06:15",
+    "end": "06:30",
+    "narration": "那一份卷軸說了什麼？令人意外的是，已讀出的文字不是預言，也不是古代祕密武器，而是關於享樂、食物以及人類應該怎麼理解快樂。",
+    "visual": "希臘哲學雕像",
+    "stock_query": "ancient greek philosophy statue",
+    "secondary_query": "ancient greek philosophy statue cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 27,
+    "start": "06:30",
+    "end": "06:45",
+    "narration": "文章與伊比鳩魯學派的問題相呼應：稀少的東西，就一定比充足的東西更令人愉快嗎？這是一個兩千年前的人提出、今天仍值得討論的問題。",
+    "visual": "食物與哲學的視覺對照",
+    "stock_query": "food table ancient style",
+    "secondary_query": "food table ancient style cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 28,
+    "start": "06:45",
+    "end": "07:00",
+    "narration": "把珍貴的古書讀回來，結果看到的不是神話寶藏，而是人類對生活的思考。或許這才是考古最迷人的地方：我們和古人沒有想像中那麼遙遠。",
+    "visual": "博物館觀眾觀看文物",
+    "stock_query": "museum visitors antiquity",
+    "secondary_query": "museum visitors antiquity cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 29,
+    "start": "07:00",
+    "end": "07:15",
+    "narration": "但最初只讀出了卷軸的一小部分。剩下的層次仍然彎曲、破損，技術也不一定能在不同卷軸之間直接套用。新的難題才剛開始。",
+    "visual": "一層層卷軸斷面",
+    "stock_query": "rolled parchment layers",
+    "secondary_query": "rolled parchment layers cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 30,
+    "start": "07:15",
+    "end": "07:30",
+    "narration": "研究團隊得讓追蹤紙張的工具更穩定，讓墨跡辨識更準確，並加快處理速度。這些聽起來不起眼的工程細節，決定了能不能從幾行字走向整卷。",
+    "visual": "密集運算與切片",
+    "stock_query": "computer processing data",
+    "secondary_query": "computer processing data cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 31,
+    "start": "07:30",
+    "end": "07:45",
+    "narration": "二零二六年六月二十五日，一項里程碑公開：研究者成功把編號 PHerc. 1667 的現存部分，從頭到尾完整地虛擬展開，並連續辨讀保存下來的文字。",
+    "visual": "卷軸慢慢展開動畫",
+    "stock_query": "ancient scroll museum",
+    "secondary_query": "ancient scroll museum cinematic",
+    "source_hint": "Vesuvius Challenge / Wikimedia Commons"
+  },
+  {
+    "scene": 32,
+    "start": "07:45",
+    "end": "08:00",
+    "narration": "需要說清楚：這不是原始卷軸毫無損失地復活。它曾在早年的實體展開嘗試中失去外層。這次讀完的是留下來的核心，而不是早已毀損的部分。",
+    "visual": "殘缺卷軸與完整示意對照",
+    "stock_query": "damaged manuscript fragment",
+    "secondary_query": "damaged manuscript fragment cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 33,
+    "start": "08:00",
+    "end": "08:15",
+    "narration": "研究團隊從倖存的核心中得到約二十二欄希臘文的部分內容，並由古文字學者檢視。過去只能讀出孤立段落，現在終於有機會追蹤一段連續的思想。",
+    "visual": "多欄文字逐步出現",
+    "stock_query": "greek text columns",
+    "secondary_query": "greek text columns cinematic",
+    "source_hint": "Vesuvius Challenge / Wikimedia Commons"
+  },
+  {
+    "scene": 34,
+    "start": "08:15",
+    "end": "08:30",
+    "narration": "而這次的內容，也和之前那份討論快樂的卷軸不同。證據顯示，它可能屬於斯多葛派的倫理學著作，探討人性、衝動和一個人如何逐步改善德行。",
+    "visual": "斯多葛哲學雕像",
+    "stock_query": "stoic philosopher statue",
+    "secondary_query": "stoic philosopher statue cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 35,
+    "start": "08:30",
+    "end": "08:45",
+    "narration": "斯多葛派不是要求人完全沒有情緒，而是思考人如何面對欲望、判斷與自身行動。現存文字還提及與著名斯多葛哲學家克律西波斯有關的人物。",
+    "visual": "古典雕像搭配關鍵字",
+    "stock_query": "ancient marble sculpture",
+    "secondary_query": "ancient marble sculpture cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 36,
+    "start": "08:45",
+    "end": "09:00",
+    "narration": "如果只有不連續的幾個字，學者很難知道作者想說什麼。但當一欄接著一欄的語句出現，研究者才可能分析完整論證的方向與上下文。",
+    "visual": "專家逐行比對文字",
+    "stock_query": "historical manuscript reading",
+    "secondary_query": "historical manuscript reading cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 37,
+    "start": "09:00",
+    "end": "09:15",
+    "narration": "這次成果還有一個特別之處：影像資料、重建表面和部分程式碼公開，讓其他研究者可以檢驗、改進方法，甚至重新檢查每一處可能的判讀錯誤。",
+    "visual": "公開研究資料畫面",
+    "stock_query": "open access computer",
+    "secondary_query": "open access computer cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 38,
+    "start": "09:15",
+    "end": "09:30",
+    "narration": "公開並不代表所有結論都已確定。古希臘文的殘字、紙面損壞和模型誤判，仍要交給專家仔細比對。AI 提供線索，學術研究負責確認。",
+    "visual": "研究者放大檢查字跡",
+    "stock_query": "research manuscript scholar",
+    "secondary_query": "research manuscript scholar cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 39,
+    "start": "09:30",
+    "end": "09:45",
+    "narration": "那麼，為什麼不直接使用最強大的聊天 AI 來翻譯？因為在翻譯之前，你必須先知道原來的字究竟在哪裡，長什麼樣子。這是兩個不同的問題。",
+    "visual": "掃描辨識與翻譯的分工圖",
+    "stock_query": "artificial intelligence screen",
+    "secondary_query": "artificial intelligence screen cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 40,
+    "start": "09:45",
+    "end": "10:00",
+    "narration": "辨認文字時，模型可能被皺摺或材料紋路誤導；重建頁面時，演算法可能選錯層次。若沒有人工檢核，看似清楚的文字也可能是錯誤產物。",
+    "visual": "螢幕上的假陽性警示",
+    "stock_query": "data anomaly computer",
+    "secondary_query": "data anomaly computer cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 41,
+    "start": "10:00",
+    "end": "10:15",
+    "narration": "考古、物理、電腦科學、機器學習和古典語言學，因此必須一起工作。沒有掃描就沒有資料，沒有數位解卷就沒有頁面，沒有專家就缺乏可信的閱讀。",
+    "visual": "跨領域協作照片",
+    "stock_query": "interdisciplinary scientists",
+    "secondary_query": "interdisciplinary scientists cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 42,
+    "start": "10:15",
+    "end": "10:30",
+    "narration": "到了二零二六年十月，挑戰賽仍然有新消息。另一份卷軸 PHerc. 343 的內部辨認出新的希臘文字，說明這些技術仍在發展，而不是故事已經完結。",
+    "visual": "新字母慢慢浮現",
+    "stock_query": "greek ancient alphabet",
+    "secondary_query": "greek ancient alphabet cinematic",
+    "source_hint": "Vesuvius Challenge / Wikimedia Commons"
+  },
+  {
+    "scene": 43,
+    "start": "10:30",
+    "end": "10:45",
+    "narration": "更大的目標，是讓不同卷軸都能以更快、更穩定的方式被閱讀。有些卷軸甚至可能保存尚未流傳到今天的著作，但每一項新發現都需要謹慎驗證。",
+    "visual": "一排保存的古代卷軸",
+    "stock_query": "ancient scroll collection",
+    "secondary_query": "ancient scroll collection cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 44,
+    "start": "10:45",
+    "end": "11:00",
+    "narration": "想一想，我們今天對古代世界的認識，常建立在少數恰好流傳下來的文獻上。如果一座沉睡的圖書館重新開口，歷史的拼圖或許就會多出重要碎片。",
+    "visual": "失落圖書館想像重建",
+    "stock_query": "ancient library reconstruction",
+    "secondary_query": "ancient library reconstruction cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 45,
+    "start": "11:00",
+    "end": "11:15",
+    "narration": "不過，我們不應把每一張模糊影像都當作確鑿的新史料。真正偉大的突破，不只是讓人驚呼，而是讓其他研究者也能檢查、重現和提出質疑。",
+    "visual": "文獻對照與紀錄",
+    "stock_query": "archaeologist museum archive",
+    "secondary_query": "archaeologist museum archive cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 46,
+    "start": "11:15",
+    "end": "11:30",
+    "narration": "一場發生在西元七十九年的災難，讓書卷變成無法翻動的黑色殘骸。兩千年後，X 光、程式碼和古文字學，讓其中一部分思想重新被人閱讀。",
+    "visual": "火山夕陽與卷軸轉場",
+    "stock_query": "volcano sunset italy",
+    "secondary_query": "volcano sunset italy cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 47,
+    "start": "11:30",
+    "end": "11:45",
+    "narration": "我們還不知道下一份卷軸會帶來什麼。也許是一篇哲學著作，也許是早已遺失的歷史片段。但最令人振奮的，是我們終於有辦法繼續問下去。",
+    "visual": "書卷黑暗中亮起",
+    "stock_query": "ancient parchment close up",
+    "secondary_query": "ancient parchment close up cinematic",
+    "source_hint": "Pexels / Pixabay"
+  },
+  {
+    "scene": 48,
+    "start": "11:45",
+    "end": "12:00",
+    "narration": "如果一座被埋葬兩千年的圖書館，都能重新說話，那人類還有多少以為永遠失去的知識，正等待下一次被發現？這就是科技與歷史相遇的力量。",
+    "visual": "圖書館遠景淡出",
+    "stock_query": "library books cinematic",
+    "secondary_query": "library books cinematic cinematic",
+    "source_hint": "Pexels / Pixabay"
+  }
+]
