@@ -25,7 +25,6 @@ on:
 
 permissions:
   contents: read
-  models: read
 
 concurrency:
   group: game-documentary-${{ github.ref }}
@@ -80,9 +79,9 @@ jobs:
       - name: Record prerequisite diagnosis without network calls
         if: steps.queue.outputs.active == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-          LLM_BASE_URL: ${{ vars.LLM_BASE_URL || 'https://models.github.ai/inference' }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
           TTS: ${{ inputs.tts || 'edge' }}
         run: python -m documentary.doctor --tts "$TTS" --out output/environment-diagnosis.json
       - name: Produce and enforce all gates
@@ -92,10 +91,9 @@ jobs:
           MINUTES: ${{ inputs.minutes || '12' }}
           TTS: ${{ inputs.tts || 'edge' }}
           EVENT: ${{ github.event_name }}
-          GH_TOKEN: ${{ github.token }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-          LLM_BASE_URL: ${{ vars.LLM_BASE_URL || 'https://models.github.ai/inference' }}
-          LLM_MODEL: ${{ vars.LLM_MODEL || 'openai/gpt-4.1' }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
           LLM_MAX_CALLS: '180'
         run: |
           if [ "$EVENT" = workflow_dispatch ]; then
@@ -124,7 +122,12 @@ jobs:
                   print('::error title=Documentary blocked::' + message)
           diagnosis = Path('output/environment-diagnosis.json')
           if diagnosis.exists():
-              chunks.append('<details><summary>Prerequisite metadata (does not prove service readiness)</summary><pre>' + html.escape(diagnosis.read_text(encoding='utf-8')) + '</pre></details>\n')
+              data = json.loads(diagnosis.read_text(encoding='utf-8'))
+              chunks.append('<details><summary>Prerequisite metadata (does not prove service readiness)</summary><pre>' + html.escape(json.dumps(data, ensure_ascii=False, indent=2)) + '</pre></details>\n')
+              if data.get('status') == 'PREREQUISITES_BLOCKED':
+                  message = '; '.join(data.get('missing_prerequisites', [])) or 'Startup policy denies required destinations; inspect environment-diagnosis.json'
+                  message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                  print('::error title=Prerequisites blocked::' + message)
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as summary:
               summary.write(''.join(chunks))
           PY

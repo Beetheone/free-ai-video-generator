@@ -14,6 +14,12 @@ from .production import FONT
 
 
 def recovery(code):
+    if code == "MODEL_PROVIDER_RETIRED":
+        return ["GitHub officially retired GitHub Models on 2026-07-30, including the inference API.",
+                "Use an active compatible text+vision provider. Gemini has a free tier where eligible; configure LLM_API_KEY securely and confirm the model/quota."]
+    if code == "MODEL_PROTOCOL":
+        return ["The configured HTTPS endpoint returned non-JSON instead of chat completions. Verify the API base URL and provider availability.",
+                "Inspect safe media-type/body-kind diagnostics; do not parse an HTML page as model output or request duplicate keys without checking authorization."]
     if code in {"MODEL_SCHEMA", "MODEL_TRUNCATED"}:
         return ["Check the safe envelope/content diagnostic in blocker.detail; an HTTP 200 response is not proof of valid model output.",
                 "Use a chat-completions text+vision model supporting JSON objects; never substitute a hard-coded story for an invalid response."]
@@ -23,7 +29,10 @@ def recovery(code):
     if code in {"MODEL_UNAVAILABLE", "MODEL_CREDENTIAL_REQUIRED"}:
         return ["Check model authorization and quota using existing credentials first.",
                 "If needed, configure a compatible text+vision endpoint and LLM_API_KEY securely in settings; never paste keys in chat."]
-    if code in {"MODEL_BUDGET", "MODEL_CONFIG"}:
+    if code == "MODEL_CONFIG":
+        return ["Explicitly set LLM_BASE_URL and LLM_MODEL for the provider that issued LLM_API_KEY.",
+                "Also check LLM_MAX_CALLS (1–1000) and LLM_MIN_INTERVAL (0–60 seconds); keys are never sent to an implicit provider."]
+    if code == "MODEL_BUDGET":
         return ["Check LLM_MAX_CALLS and LLM_MIN_INTERVAL; wait for free quota reset or select another compatible provider.",
                 "A larger paid quota is optional; no paid service is activated automatically."]
     if code in {"LICENSED_GAMEPLAY_MISSING", "LICENSED_RELEVANT_FOOTAGE_MISSING", "FOOTAGE_COVERAGE"}:
@@ -61,7 +70,8 @@ def diagnose(engine="edge", policy_path=Path("/etc/codex/network-policy.json")):
         except (ValueError, OSError):
             policy_error = "Policy snapshot is unreadable or malformed"
     hosts = [] if policy is None else [e["host"] for e in policy.get("egress_rules", []) if isinstance(e, dict) and isinstance(e.get("host"), str)]
-    model_host = urlsplit(os.getenv("LLM_BASE_URL", "https://models.github.ai/inference")).hostname
+    base = os.getenv("LLM_BASE_URL", "").strip()
+    model_host = urlsplit(base).hostname
     services = {"model": [model_host], "research": ["www.bing.com"],
                 "footage": ["commons.wikimedia.org", "upload.wikimedia.org"],
                 "voice": ["speech.platform.bing.com"] if engine == "edge" else ["huggingface.co"],
@@ -81,8 +91,14 @@ def diagnose(engine="edge", policy_path=Path("/etc/codex/network-policy.json")):
                             "live_operation_tested": False})
     missing = [n for n, ok in {**tools, **modules, "Noto CJK font": font}.items() if not ok]
     denied = [r["hostname"] for r in results if r["startup_policy_allows"] is False]
-    if not any(credentials.values()):
-        missing.append("model credential binding; check injected authentication before requesting a new key")
+    if not credentials["LLM_API_KEY"]:
+        missing.append("LLM_API_KEY for the configured model provider; a GitHub token is not a Gemini API key")
+    if not base or not model_host:
+        missing.append("LLM_BASE_URL explicitly selecting an active HTTPS text+vision API provider")
+    if not os.getenv("LLM_MODEL", "").strip():
+        missing.append("LLM_MODEL supported by the chosen provider")
+    if model_host in {"models.github.ai", "models.inference.ai.azure.com"}:
+        missing.append("active model provider; GitHub Models inference retired on 2026-07-30")
     blocked = bool(missing or denied)
     return {"status": "PREREQUISITES_BLOCKED" if blocked else "PRECHECKS_PASS_SERVICE_TESTS_REQUIRED",
             "scope": "Metadata and startup policy snapshot only. Not a current runtime policy or external service readiness proof.",

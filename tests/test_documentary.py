@@ -41,6 +41,8 @@ def test_model_missing_credential(monkeypatch):
 
 def test_model_error_does_not_log_secret(monkeypatch):
     monkeypatch.setenv("LLM_API_KEY", "fixture-secret-do-not-log")
+    monkeypatch.setenv("LLM_BASE_URL", "https://provider.example.org/v1")
+    monkeypatch.setenv("LLM_MODEL", "fixture")
     class Response:
         status_code = 429
         text = "fixture-secret-do-not-log"

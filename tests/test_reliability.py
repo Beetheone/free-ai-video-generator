@@ -138,13 +138,15 @@ def test_doctor_reports_policy_and_presence_without_secret(tmp_path, monkeypatch
     for name in ("LLM_API_KEY", "GH_TOKEN", "GITHUB_TOKEN"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("LLM_API_KEY", "fixture-secret-never-serialize")
+    monkeypatch.setenv("LLM_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai")
+    monkeypatch.setenv("LLM_MODEL", "fixture")
     policy = tmp_path / "policy.json"
-    policy.write_text(json.dumps({"version":1,"http_network_policy":{"type":"restricted","egress_rules":[{"host":"models.github.ai"}]}}))
+    policy.write_text(json.dumps({"version":1,"http_network_policy":{"type":"restricted","egress_rules":[{"host":"generativelanguage.googleapis.com"}]}}))
     report = diagnose(policy_path=policy)
     assert report["status"] == "PREREQUISITES_BLOCKED"
     assert report["credential_variable_presence"]["LLM_API_KEY"] is True
     assert "fixture-secret" not in json.dumps(report)
-    assert "models.github.ai" not in report["domains_denied_by_startup_snapshot"]
+    assert "generativelanguage.googleapis.com" not in report["domains_denied_by_startup_snapshot"]
     assert "commons.wikimedia.org" in report["domains_denied_by_startup_snapshot"]
     assert all(r["live_operation_tested"] is False for r in report["services"])
 

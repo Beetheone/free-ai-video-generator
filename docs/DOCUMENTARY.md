@@ -6,12 +6,14 @@
 
 1. 合併 PR 後進入 [One Topic Game Documentary](https://github.com/Beetheone/free-ai-video-generator/actions/workflows/one-topic-documentary.yml)，選 **Run workflow**。
 2. 輸入「寶可夢紅綠版，推卡車抓夢幻的都市傳說」等題材，選分鐘與旁白。無須自己寫腳本、分鏡、搜尋詞。
-3. 預設 `models: read`、`github.token` 呼叫 GitHub Models `openai/gpt-4.1`。帳戶或組織需已開放對應模型。這不是保證每個 repository 的 token 都能使用模型。
-4. 如模型權限不足，在 repository **Settings → Secrets and variables → Actions** 安全設定 `LLM_API_KEY`；在 Variables 設定 `LLM_BASE_URL`（HTTPS、含相容 API 基底路徑）與 `LLM_MODEL`。模型必須同時支援圖片輸入、JSON object 與 chat completions。勿在議題、程式碼或聊天貼金鑰。
+3. 先在 repository **Settings → Secrets and variables → Actions** 安全設定 Secret `LLM_API_KEY`；在 Variables 設定 `LLM_BASE_URL`（HTTPS、含相容 API 基底路徑）與 `LLM_MODEL`。模型必須同時支援圖片輸入、JSON object 與 chat completions。這是一次性的環境設定；每次產片只輸入題材。勿在議題、程式碼或聊天貼金鑰。
+4. 可選 Gemini 免費額度方案：在 [Google AI Studio](https://aistudio.google.com/apikey) 取得適用的 API key，`LLM_BASE_URL` 設 `https://generativelanguage.googleapis.com/v1beta/openai`，`LLM_MODEL` 可選官方 SDK 目前示例的 `gemini-flash-latest`。需依帳戶／區域確認模型支援、免費資格及當期配額；alias 的實際模型可能改變，本次尚未取得金鑰實測 Gemini。也可選另一相容提供者並設定其端點、模型與金鑰；程式要求明確指定提供者，避免將既有通用 key 自動傳給另一服務。
 5. Actions 成功後，Artifacts 內有 `documentary.mp4`、`documentary.srt`、`thumbnail.jpg`、`ATTRIBUTION.md`、`sources.json` 與審核報告。將素材署名與授權連結放入 YouTube 說明。系統不會自動上傳 YouTube。
 6. 失敗時仍上傳 JSON。先看 `qa_report.json` 的 `failed_stage`、`blocker.code`、`blocker.detail`，再查看該階段報告。`work/`、原始素材與未通過的 `candidate.mp4` 不會當成成品上傳。
 
-新 workflow 在 PR 分支可能尚不出現在預設分支的 Actions 清單；合併後才可從此入口正常手動執行。此開發機的測試不代表 Actions 已實際執行過。
+新 workflow 的手動入口需先存在於預設分支；功能分支也能透過推送 `config/topics.json` 變更觸發批次。本次已實際在 GitHub Actions 執行測試與寶可夢題材，結果詳見 [VALIDATION.md](VALIDATION.md)，不可把測試工作流程成功當成影片製作成功。
+
+**GitHub Models 已退役。** [GitHub 官方文件](https://github.com/github/docs/blob/main/content/github-models/index.md) 說明，自 **2026-07-30** 起推論 API、模型目錄與 BYOK 已完全停止。程式會拒絕舊端點，回傳 `MODEL_PROVIDER_RETIRED`；新增 GitHub token 或 `models: read` 無法修復。GitHub Actions 執行平台仍可使用，與已退役的模型服務不同。
 
 ## 每日與批次
 
@@ -21,7 +23,7 @@
 ["寶可夢紅綠版，推卡車抓夢幻的都市傳說", "風之旅人，陌生玩家之間的合作設計"]
 ```
 
-每天 01:20 UTC（台灣 09:20）循序處理清單；GitHub 排程可能延遲，私人 repository 亦受 Actions 分鐘額度限制。清單會每天重新執行，不是自動刪除的佇列；避免重複產片請更新清單。預設 `[]` 會明確略過產製。任一題被阻擋，整批退出碼為 2，但其餘題仍會執行並保留各自報告。Concurrency 避免同分支同時消耗多個批次資源。
+每天 01:20 UTC（台灣 09:20）循序處理清單；推送 `config/topics.json` 的變更也會觸發一次批次，不限預設分支。GitHub 排程可能延遲，私人 repository 亦受 Actions 分鐘額度限制。清單會每天重新執行，不是自動刪除的佇列；避免重複產片請更新清單。預設 `[]` 會明確略過產製。任一題被阻擋，整批退出碼為 2，但其餘題仍會執行並保留各自報告。收到取消訊號則退出 130，不再繼續下一題。Concurrency 避免同分支同時消耗多個批次資源。
 
 ## 流程及具體門檻
 
@@ -50,6 +52,7 @@
 cd /workspace/free-ai-video-generator
 python -m venv /workspace/.venvs/game-doc
 /workspace/.venvs/game-doc/bin/pip install -r requirements-documentary.txt
+/workspace/.venvs/game-doc/bin/python -m documentary.doctor --out output/environment-diagnosis.json
 /workspace/.venvs/game-doc/bin/python -m pytest -q
 /workspace/.venvs/game-doc/bin/python topic_pipeline.py --topic '寶可夢紅綠版，推卡車抓夢幻的都市傳說' --minutes 12
 ```
@@ -58,17 +61,23 @@ python -m venv /workspace/.venvs/game-doc
 
 每次執行建立新目錄，拒絕沿用既存成品。測試合成影片只是編碼與字幕驗證，不可當遊戲畫面。未通過的素材留在開發機供診斷，不會成為 Actions 的 MP4 成品。
 
+`doctor` 不發送網路請求、不輸出金鑰值，只檢查套件、工具、字型、憑證變數是否存在，以及可用的啟動網路政策快照。它不證明目前網路政策、模型權限或外部服務已就緒；實際執行仍是必要驗收。缺前置條件退出 2，通過也只代表 `PRECHECKS_PASS_SERVICE_TESTS_REQUIRED`。Actions 會保存診斷 JSON，並在 run summary 顯示實際製作結果。
+
+`qa_report.json` 在每個階段與逐段配音／匹配後寫入 `current_stage`、`completed_stages`、`progress`、`updated_at`。失敗時附 `next_actions`。SIGTERM／Ctrl-C 會保存 `CANCELLED`；無法攔截的強制 SIGKILL 只能留下最後一次 checkpoint。未經重新審核的半成品不會自動恢復或當成成片。
+
+Edge 配音先解碼為 PCM 再測量片長，避免 MP3 容器補樣影響時間線。各場景只編碼畫面，全部 PCM 旁白串接後才統一編碼一次 AAC；字幕依同一實測時間線排列。QA 也比較各影音 stream 長度及完整解碼的音訊樣本長度，避免容器片長正常卻實際旁白提前結束或逐段偏移。
+
 ## 實際驗證與目前阻礙
 
-詳見 [VALIDATION.md](VALIDATION.md)。本次真實中文入口停在 `MODEL_NETWORK`；搜尋、Commons 與 Edge TTS 分別得到代理拒絕。沒有真正完成寶可夢研究、腳本、配音或合法遊戲素材下載，也沒有 10–15 分鐘成品。模型／授權／自然旁白與語義匹配的真實品質尚未驗收。
+詳見 [VALIDATION.md](VALIDATION.md)。Codex 開發機的真實中文入口曾停在 `MODEL_NETWORK`；搜尋、Commons 與 Edge TTS 分別得到代理拒絕。另在 GitHub runner 實跑後，確認模型回應不是有效 JSON API envelope，並查到官方服務退役資訊，已移除該預設。沒有真正完成寶可夢研究、腳本、配音或合法遊戲素材下載，也沒有 10–15 分鐘成品。新提供者仍需安全設定金鑰、端點與模型，模型／授權／自然旁白與語義匹配的真實品質尚未驗收。
 
 雲端網域草稿已保存，需在環境設定檢閱並儲存、發布後重新測試。搜尋回傳的文章可能需要額外逐一開放其原站網域；錯誤清單會保留 URL。GitHub Actions runner 的連線條件與這台開發機不同，仍須實跑驗證。不要為通過測試而關閉 TLS／憑證驗證。
 
 ## 免費與資源限制
 
 - FFmpeg、PySceneDetect、文章擷取、字幕與封面不需付費 API。下載最多 12 支、600 MB，單支 100 MB、20 分鐘、4K 以內；搜尋最多 18 詞，每段最多評估 24 個候選，影片不重用。
-- 預設一題最多 180 次模型呼叫，每次最多 4,000 輸出 tokens；GitHub Models 預設至少間隔 7 秒。額度／頻率／輸入上限仍由模型和帳戶決定，可能在完成前就耗盡。每次報告記錄實際 usage，不虛構固定產片成本。
-- GitHub Models 免費額度不是每天足量的商用影片服務。HTTP 429／模型額度不足時明確停止；可等額度重置、縮小研究範圍或選較便宜且支援視覺的相容模型。不能保證換個免費模型仍達標。
+- 預設一題最多 180 次模型呼叫，每次最多 4,000 輸出 tokens，預設至少間隔 7 秒。額度／頻率／輸入上限仍由模型和帳戶決定，可能在完成前就耗盡。每次報告記錄實際 usage；若提供者未回傳完整用量，另記 `model_usage_unavailable_calls`，不把未知用量當作零成本。
+- 免費額度不是每天足量的商用影片服務，GitHub Models 更已退役，不能作為免費替代。Gemini 等方案需金鑰及帳戶資格；HTTP 429／模型額度不足時明確停止，可等額度重置或選另一可用模型。不能保證更換免費模型仍達標。程式不會為追求成功而自動開啟付費方案。
 - Edge TTS 是免費服務存取方案，沒有本專案能保證的 SLA／無限配額。失效可選已保留的 Kokoro CPU；首次需下載模型，普通話自然度與地域口音仍需驗收。
 - 完全開源的文字模型與 Qwen 視覺模型可由有 GPU 的遠端服務提供相容 HTTPS 端點，不需使用者本機安裝；一般免費 Actions CPU 不適合即時載入多個 7B／9B 視覺與文字模型。程式目前沒有內建自動部署免費 GPU 服務。
 - 最難免費解決的是特定遊戲／事件合法畫面。可行方向是權利清楚的開源遊戲、權利人明確允許的錄製素材或取得正式授權；本版尚未實作自動遊玩錄製與權利人素材庫接入。寶可夢題材不可因為有影片可看就假設可以下載重製。
