@@ -5,6 +5,7 @@ import ipaddress
 import json
 import math
 import os
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -98,6 +99,7 @@ class Model:
         except ValueError:
             raise Blocked("MODEL_CONFIG", "LLM_MAX_CALLS must be 1–1000 and LLM_MIN_INTERVAL a finite 0–60 seconds") from None
         self.usage = {"prompt_tokens": 0, "completion_tokens": 0}
+        self.usage_unavailable_calls = 0
         self.last_call = 0
 
     def json(self, instruction, payload, images=()):
@@ -126,17 +128,39 @@ class Model:
             raise Blocked("MODEL_UNAVAILABLE", f"Model HTTP {r.status_code}; check model access, rate quota, endpoint and credentials. Response body withheld.")
         try:
             body = r.json()
+        except ValueError:
+            raise Blocked("MODEL_SCHEMA", "Model HTTP 200 response is not a JSON envelope; body withheld") from None
+        if not isinstance(body, dict) or not isinstance(body.get("choices"), list) or not body["choices"]:
+            raise Blocked("MODEL_SCHEMA", "Model HTTP 200 envelope has no completion choices; body withheld")
+        usage = body.get("usage")
+        if isinstance(usage, dict) and all(type(usage.get(k)) is int and usage[k] >= 0 for k in self.usage):
             for k in self.usage:
-                self.usage[k] += body.get("usage", {}).get(k, 0)
-            choice = body["choices"][0]
-            if choice.get("finish_reason") != "stop":
-                raise Blocked("MODEL_TRUNCATED", "Model did not complete its JSON response")
-            result = json.loads(choice["message"]["content"])
-            if not isinstance(result, dict):
-                raise ValueError("Expected object")
-            return result
-        except (KeyError, ValueError, TypeError):
-            raise Blocked("MODEL_SCHEMA", "Model returned invalid JSON/schema") from None
+                self.usage[k] += usage[k]
+        else:
+            # Missing token accounting is not malformed story JSON. Do not turn
+            # a valid model response into a schema error or claim zero-cost usage.
+            self.usage_unavailable_calls += 1
+        choice = body["choices"][0]
+        if not isinstance(choice, dict):
+            raise Blocked("MODEL_SCHEMA", "Completion choice is not an object; body withheld")
+        if choice.get("finish_reason") != "stop":
+            raise Blocked("MODEL_TRUNCATED", "Model did not complete its JSON response")
+        message = choice.get("message")
+        if not isinstance(message, dict) or not isinstance(message.get("content"), str):
+            raise Blocked("MODEL_SCHEMA", "Completion has no text content; body withheld")
+        content = message["content"].strip().lstrip("\ufeff")
+        fenced = re.fullmatch(r"```(?:json)?\s*\n?(.*?)\n?```", content, flags=re.DOTALL)
+        if fenced:
+            content = fenced[1].strip()
+        try:
+            result = json.loads(content)
+        except json.JSONDecodeError as exc:
+            # Structure and position aid diagnosis without echoing topic/source
+            # content or any credential accidentally returned by a provider.
+            raise Blocked("MODEL_SCHEMA", f"Completion text is invalid JSON at line {exc.lineno}, column {exc.colno}; characters={len(content)}, fenced={fenced is not None}; content withheld") from None
+        if not isinstance(result, dict):
+            raise Blocked("MODEL_SCHEMA", "Completion JSON is not an object; content withheld")
+        return result
 
 
 def command(args, timeout=300):

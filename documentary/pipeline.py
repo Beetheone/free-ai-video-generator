@@ -122,7 +122,8 @@ def run_pipeline(topic, minutes, out, engine="edge", voice="zh-TW-YunJheNeural",
         if report.get("blocker"):
             report["next_actions"] = recovery(report["blocker"]["code"])
         report.update(finished_at=datetime.now(timezone.utc).isoformat(),
-                      model_calls=getattr(model, "calls", 0), model_usage=getattr(model, "usage", {}))
+                      model_calls=getattr(model, "calls", 0), model_usage=getattr(model, "usage", {}),
+                      model_usage_unavailable_calls=getattr(model, "usage_unavailable_calls", 0))
         save(out / "qa_report.json", report)
     return report
 

@@ -14,6 +14,9 @@ from .production import FONT
 
 
 def recovery(code):
+    if code in {"MODEL_SCHEMA", "MODEL_TRUNCATED"}:
+        return ["Check the safe envelope/content diagnostic in blocker.detail; an HTTP 200 response is not proof of valid model output.",
+                "Use a chat-completions text+vision model supporting JSON objects; never substitute a hard-coded story for an invalid response."]
     if code in {"MODEL_NETWORK", "NETWORK", "NETWORK_POLICY_BLOCKED"}:
         return ["Check current cloud network policy; draft changes do not apply themselves.",
                 "Review and save required domains in environment settings, publish, then retry the affected operation."]
