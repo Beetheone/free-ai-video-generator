@@ -3,6 +3,18 @@ name: Render Chinese documentary
 
 on:
   workflow_dispatch:
+    inputs:
+      voice_preview:
+        description: 'First 2 scenes only (quick voice test)'
+        type: boolean
+        default: true
+      tts_engine:
+        description: 'Voice engine'
+        type: choice
+        options:
+          - kokoro
+          - piper
+        default: kokoro
 
 permissions:
   contents: read
@@ -20,9 +32,10 @@ jobs:
       - name: Install packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg fonts-noto-cjk
+          sudo apt-get install -y ffmpeg fonts-noto-cjk espeak-ng
           pip install -r requirements.txt
           pip install piper-tts opencc-python-reimplemented
+          pip install 'kokoro>=0.9.4' 'misaki[zh]>=0.8.2' soundfile
 
       - name: Download Chinese voice model
         run: |
@@ -32,7 +45,7 @@ jobs:
           test $(wc -c < models/zh_CN-huayan-medium.onnx) -gt 50000000
 
       - name: Validate Python sources
-        run: python -m py_compile render.py media_assets.py open_video.py pixabay_video.py piper_voice.py
+        run: python -m py_compile render.py media_assets.py open_video.py pixabay_video.py piper_voice.py kokoro_voice.py
 
       - name: Restore Pixabay API cache
         uses: actions/cache@v4
@@ -46,6 +59,8 @@ jobs:
         env:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          TTS_ENGINE: ${{ inputs.tts_engine }}
+          VOICE_PREVIEW: ${{ inputs.voice_preview }}
         run: python render.py
 
       - uses: actions/upload-artifact@v4
