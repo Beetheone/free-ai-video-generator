@@ -4,7 +4,11 @@
 
 到 [Actions → One Topic Game Documentary](https://github.com/Beetheone/free-ai-video-generator/actions/workflows/one-topic-documentary.yml)，輸入中文題材與 10、12 或 15 分鐘。腳本與搜尋詞由系統產生，不必手寫分鏡。流程包含中英文研究、原文引句與跨來源審核、原創繁體中文腳本、Commons 授權遊戲影片、實際影格匹配、中文旁白、字幕、1080p MP4、封面與來源報告。
 
-**尚未證明能自動完成任意題材的高品質紀錄片。** 已驗證實際渲染、音畫同步與拒絕不合格內容，89 項測試在 GitHub Actions 成功。Gemini 真實文字＋圖片推論、搜尋與 Commons API 已通過；Kokoro CPU 已產出 9.625 秒實際中文語音與字幕並通過解碼檢查，尚未聆聽驗收自然度。缺少合法且相符的畫面時會回傳失敗與報告，沒有文字卡、無關素材或示範影片補位。詳見 [操作、驗證結果與限制](docs/DOCUMENTARY.md) 和 [第三方評估](docs/THIRD_PARTY.md)。
+先看 [白話使用說明：現在輸入題目能做到哪裡](docs/USER_STAGE.md)。新增 `goal=research`、`script`、`movie` 三個明確階段，研究包附 `PROGRESS.md`；證據審核通過才有 `RESEARCH.md`，腳本審核通過才有 `SCRIPT.md`。研究與腳本成功都不代表影片完成。另有不安裝配音模型的 [研究入口](https://github.com/Beetheone/free-ai-video-generator/actions/workflows/one-topic-research.yml)，獨立檢查 Commons 授權候選並輸出 `FOOTAGE_GAPS.md`。
+
+[真實寶可夢研究包已通過](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40678067902)：12 篇本文、6 篇有相關引句、5 項主張通過本次自動審核，約 2 分鐘完成；尚無合格長稿或 MP4。
+
+**尚未證明能自動完成任意題材的高品質紀錄片。** 已驗證實際渲染、音畫同步與拒絕不合格內容，115 項測試在 GitHub Actions 成功。研究已整合 DDGS、Wikipedia-API、BM25、pySBD，使用真實來源、原文字元位置與片段編號，最多一輪缺口補查；不強迫模型湊故事。Gemini 真實文字＋圖片推論可用，Kokoro CPU 曾產出 9.625 秒中文語音與字幕並通過解碼檢查，自然度尚未聆聽驗收。缺少合法且相符的畫面時會回傳失敗與報告，沒有文字卡、無關素材或示範影片補位。詳見 [操作、驗證結果與限制](docs/DOCUMENTARY.md) 和 [第三方評估](docs/THIRD_PARTY.md)。
 
 目前依使用者選擇，以 [config/model.json](config/model.json) 設定 Gemini `gemini-flash-latest` 與官方 OpenAI 相容端點；實測使用者覆寫的 `gemini-3.5-flash-lite` 可用。Actions 接受 `LLM_API_KEY`／`GEMINI_API_KEY`／`GOOGLE_API_KEY` Secret，非機密的端點與模型可放在 Variables 或 Secrets 覆寫。Gemini 免費資格與額度依帳戶而異，不保證足夠每天產片。[服務檢查](https://github.com/Beetheone/free-ai-video-generator/actions/workflows/verify-documentary-environment.yml) 與 [Kokoro 語音檢查](https://github.com/Beetheone/free-ai-video-generator/actions/workflows/verify-kokoro-voice.yml) 已接上，合併前透過功能分支推送觸發，合併後可手動執行。Actions 旁白預設已驗證的 Kokoro CPU 普通話；Edge 台灣中文仍保留，但當前測試沒有取得音訊。每日台灣時間 09:20 排程與最多三題批次已接上，單次驗證後會清空題材清單。
 

@@ -1,149 +1,75 @@
 # 驗證紀錄
 
-## 改用 Gemini 後的環境實測（2026-10-28）
+## 本次驗收：中文題目到研究包
 
-已依使用者最新選擇，將專案預設改成 Gemini 官方 OpenAI 相容端點與 `gemini-flash-latest`，並新增獨立服務檢查；不消耗 10–15 分鐘產片所需的大量推論。
+2026-10-28，版本 `014c582`，題目：「寶可夢紅綠版，推卡車抓夢幻的都市傳說」。
 
-[首次真實服務檢查，f3029bc](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40609328086)，44 秒，結果：
+[真實 GitHub Actions 執行](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40678067902) **Success，2 分 5 秒**，結果為 `RESEARCH_READY`。這是研究階段成功，並非完整腳本、人工查證或影片完成。
 
-| 檢查 | 實際結果 |
+| 項目 | 真實結果 |
 | --- | --- |
-| 模型 | `MODEL_CREDENTIAL_REQUIRED`；GitHub runner 沒有讀到 `LLM_API_KEY`，未發送推論 |
-| 搜尋 | **PASS**，真實 Bing RSS 回傳 10 筆；沒有把搜尋摘要當已查證證據 |
-| Commons | **PASS**，真實 API 站台中繼資料可讀；未宣稱取得合法遊戲素材 |
-| 台灣中文配音 | `TTS_UNAVAILABLE`、`WSServerHandshakeError`；沒有產生可驗收旁白 |
+| 中英文查詢 | 由 Gemini 依題目生成，未要求使用者寫搜尋詞 |
+| 來源本文 | 12 篇擷取成功，其中 6 篇選出相關逐字引句；其餘未當成支持證據 |
+| 候選／保留主張 | 5 項候選，5 項通過本次引用、兩個出版者、日期及模型語義審核；本次排除 0 項 |
+| 補查 | 本次首輪已過門檻，未啟用第二輪；補查路徑在較早真實執行及明示合成測試驗證 |
+| 模型使用量 | 14 次呼叫，38,877 輸入 tokens、1,459 輸出 tokens；沒有缺失 usage 的呼叫 |
+| 遊戲畫面 | 真實 Commons API 檢查 8 個條目，0 個符合目前支援條件；8 個都是 `UNSUPPORTED_VIDEO_FORMAT`，未下載或確認畫面相關性 |
+| 成果 | `topic-research-40678067902` artifact，114 KB；包含研究、證據、進度與素材缺口報告，保留 7 天 |
+| 未執行 | 原創長腳本、完整配音、實際遊戲影格匹配、紀錄片 MP4 與正式長片 QA |
 
-後續修正接受常見 Gemini Secret 名稱：`LLM_API_KEY` → `GEMINI_API_KEY` → `GOOGLE_API_KEY`。亦查閱 [Edge TTS 官方 releases](https://github.com/rany2/edge-tts/releases)，確認 7.3.0 新增 Sec-MS-GEC v2、7.3.1 修正日期解析；將原來固定的 7.2.7 升級為 **7.3.1**，再實測，不使用停用 TLS 或自製憑證繞過方式。升級後本機 **88 passed in 15.05s**、`pip check`、Actionlint 與 `git diff --check` 通過。新增測試使用明示 fake API，驗證錯誤提供者在送出金鑰前停止、實際 JPEG 的編碼與回應門檻、逐服務獨立保存阻礙；這些測試不代表真實模型通過。
+研究包提供 `PROGRESS.md`、`RESEARCH.md`、`research.json`、`research_excerpts.json`、`evidence.json`、`qa_report.json` 及獨立的 `FOOTAGE_GAPS.md`。原文字元位置及引用由程式核對；模型不能自己抄寫或改造引句。`SCRIPT.md` 只在腳本全數審核完成時產生，此次沒有該檔案。
 
-Codex 雲端仍是舊 runtime：無模型金鑰、沒有 Gemini／研究／配音網域權限。已保存 Gemini 非機密設定建議與新版啟動說明；既有金鑰需求的目的地本來就是 Gemini，不必另加重複項目。草稿保存不是套用或發布，也與 GitHub repository Secrets 分開。
+公開 Actions 註記已核對上述狀態、數量、來源標題及用量；這台 Codex 的 GitHub API 網路仍受限制，沒有下載需登入的 artifact，也沒有冒充人工逐篇核讀或聆聽驗收。自動審核並不保證事實正確；本次讀到百科、部落格、第三方影片摘要與重複存檔頁面，來源權威性及轉載溯源仍需加強，不能將不同網域直接等同獨立採訪。原文雜湊、出版者正規化及第二次模型審核可拒絕部分重複／依賴來源，尚不能保證辨認所有轉載。
 
-[加入 Secret 名稱支援後的實測，aaee176](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40609620530)，56 秒：
+Commons 回傳條目的授權標示包括 CC0、CC BY、Public Domain 與 CC BY-SA，但本次直接排除原因是非支援影片格式，不能據此宣稱都是非法授權或全網沒有合法畫面。當前只支援明確 CC BY、CC0、Public Domain；其他合法條款未整合，也可能因大小、作者或來源欄位而未採用。素材中繼資料候選不等於取得遊戲內容全部權利。
 
-- **Gemini 文字／視覺 PASS**。實際採用使用者覆寫的 `gemini-3.5-flash-lite`，一次真實推論正確辨識紅／藍合成圖並回覆原繁中輸入；回報 1,171 輸入 tokens、35 輸出 tokens。這證明目前金鑰、模型與相容端點可用，不代表每日產片額度或真實遊戲辨識達標。無須再新增或重填金鑰。
-- **搜尋、Commons API PASS**。
-- Edge 7.3.1 已越過先前握手錯誤，但仍得到 **`NoAudioReceived`**，無音訊成品。版本升級沒有被當成自然配音成功。
-- [同版本 Python 3.11 測試工作流程](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40609620539) **Success**，1 分 7 秒；對應本機 88 項測試。
+## 程式與相依套件驗證
 
-另新增獨立 Kokoro CPU 短句實測，重用現有 `kokoro_voice.py` 與正式旁白／字幕檢查；不再重複呼叫 Gemini。Kokoro 是普通話替代，不保證台灣口音；需產生實際 WAV、完整解碼並驗證字幕，仍須聆聽自然度。
+- 本機 Python 3.12.14：**115 passed in 17.00s**；`pip check` 無相依衝突。
+- [同版本 Python 3.11 GitHub CI](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40678067612)：**Success，1 分 2 秒**。
+- Actionlint v1.7.12 與 `git diff --check` 通過；Actionlint 取自官方 release，已核對官方 SHA256。
+- DDGS 9.16.1、rank-bm25 0.2.2、Wikipedia-API 0.8.1、pySBD 0.3.4 已安裝、核對 GitHub 授權與依賴。Wikipedia-API 最新版的 Click 約束與影片工具衝突，因此採用只依賴 requests 的成熟版本。詳見 [第三方評估](THIRD_PARTY.md)。
+- Kokoro／Misaki 中文前端、spaCy 與 pySBD 可共同載入；這項依賴檢查不是再次合成語音。
 
-**Kokoro 實際語音已通過**：[d0f7c20，2 分 12 秒](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40611170577)。CPU 模型 `hexgrad/Kokoro-82M-v1.1-zh`、聲音 `zf_094` 產出 **9.625 秒 WAV、2 段繁中字幕**；完整解碼與時間／讀速門檻通過。該 run 的 `kokoro-voice-40611170577` artifact（458 KB）提供可聆聽樣本、SRT、報告及依賴紀錄。這是模型實際合成，不是正弦波或示範音效；自然度、台灣口音與長片節奏尚未驗收。
+測試使用真正 FFmpeg／PySceneDetect 處理合成影像與音訊，驗證 1080p 編碼、繁中字幕、封面、切鏡、完整解碼、黑畫面／靜音拒絕，以及 12 段交替音頻的逐切點音畫同步。曾發現逐段 AAC 串接造成解碼補樣累積，已改成 PCM 先串接、整片只編碼一次 AAC；逐切點 FFT 檢查通過。另驗證真正子行程 SIGTERM 保存中斷狀態、無正式 MP4。
 
-`requirements-kokoro-cpu.txt` 亦在開發機真正安裝成功：torch **2.14.1+cpu**、kokoro／misaki **0.9.4**、transformers **4.57.6**、spaCy **3.8.18**、spacy-curated-transformers **0.3.1**。`pip check` 無衝突，KPipeline／中文前端實際載入，CUDA 不可用且未安裝 GPU 執行依賴；安裝後 **89 passed in 15.03s**。同版本 [Python 3.11 CI](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40611170538) **Success**。曾寫入不存在的 spaCy 套件版本範圍，已由真正依賴解析抓到並修正，沒有將該失敗當成安裝成功。
+研究測試涵蓋晚於原先截斷位置的 BM25 檢索、中英文逐字 offset、未知引句 ID、格式修復、排除個別不合格主張後仍需保留至少 4 項且逐項通過全部原有門檻、日期正規化、偏題腳本拒絕，以及研究階段不呼叫配音／渲染。資料不足或缺素材仍必須阻擋。來源與模型 fixture 明確標成合成，測試圖樣不是遊戲畫面，音頻標記不是 AI 旁白；這 115 項測試不等於長片驗收。
 
-Actions 產片預設改為已實測的 Kokoro CPU，Edge 功能保留；正式流程使用相同 CPU 需求檔及 `pip check`。使用者無須再次設定 Gemini 金鑰。接著用原寶可夢題材實跑研究／腳本／合法素材門檻；沒有取得成品前仍不宣稱完整紀錄片通過。
+## 已驗證的模型與短句旁白
 
-[Gemini＋Kokoro 正式寶可夢題材，b171b7d](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40611643624)，**3 分 27 秒後退出 2**：動態雙語查詢與文章本文擷取階段通過，停在 `evidence_audit` 的 **`EVIDENCE_INSUFFICIENT`**，候選主張未滿足 4–50 項的結構／數量門檻。該通用訊息沒有區分非陣列、過少或過多，不能據此虛構精確主張數；因此加上後續可觀察的候選數量、相關逐字引句來源數與擷取本文數，以及固定階段的公開進度註記。驗收門檻保持原樣，未強迫模型補足故事。
-
-此 run 上傳 `game-documentary-40611643624` 診斷 artifact（24.7 KB），含研究、逐字引句與候選證據等已完成階段資料；沒有原創腳本、授權遊戲影片、完整旁白或 MP4。這台雲端的 GitHub API 網路仍未套用，無法下載需登入的 artifact 深入診斷；不能將公開摘要冒充逐份閱讀完整來源。已將題材清單清空以停止定時重試，待能檢視實際來源與證據缺口後再改善研究。對應 [89 項 Python 3.11 CI](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40611643608) **Success**，52 秒。
-
-執行日期：2026-10-28（台灣）。起始版本：`14c153c48fcaab392fe616cbddff52e5c54bf264`。開發機：Linux、Python 3.12.14、FFmpeg／FFprobe、Noto CJK，5 個可見 CPU，32 GiB 可用記憶體。Actions 設定為 Python 3.11、CPU 兩執行緒。以下保留第一階段紀錄，後續 GitHub runner 實跑結果見文末。
-
-## 已通過
-
-```text
-/workspace/.venvs/game-doc/bin/pip install -r requirements-documentary.txt
-  安裝成功；重跑已滿足現有版本，沒有改動原 requirements.txt。
-/workspace/.venvs/game-doc/bin/python -m pytest -q
-  40 passed in 4.79s
-/workspace/.venvs/game-doc/bin/python -m pip check
-  No broken requirements found.
-/tmp/actionlint/actionlint .github/workflows/one-topic-documentary.yml .github/workflows/test-documentary.yml .github/workflows/game-agent-factory.yml
-  exit 0
-git diff --check
-  exit 0
-```
-
-Actionlint v1.7.12 來自官方 GitHub release，下載 archive 與官方 checksums，核對 SHA256 後才執行；沒有關閉 TLS 或忽略驗證。
-
-測試具體覆蓋：
-
-- 實際由 FFmpeg 產生紅／藍切換測試影片，PySceneDetect 找到約第 4 秒切點。
-- 實際擷取三張候選影格；**視覺模型用明示 fake** 測試接受／拒絕與素材區間不可重複，不代表模型已正確辨識真實遊戲。
-- 實際 FFmpeg 渲染約 3 秒 **testsrc 合成動態圖樣＋440 Hz 測試音**，不是 AI 配音，也不是遊戲素材。輸出 1920×1080 H.264/AAC，燒錄繁體中文 ASS、來源框淡入，寫出 SRT，生成 1280×720 封面；完整解碼、字幕與音量門檻通過。封面亦實際開啟檢查中文字形。
-- 同一短片仍無法通過正式 600–900 秒門檻，防止拿短測試片假冒長片。
-- 實際黑畫面＋靜音影片未通過品質門檻。
-- 精確引句、不同出版網域、語言子站不算獨立來源、轉載審核拒絕、缺研究原文、無腳本引句、重複腳本、NC／ND／SA／不明授權、授權文字與 URL 矛盾、無關畫面、時間戳不合法、缺模型金鑰、批次阻擋、既存成品不可沿用等測試通過。
-- 研究與腳本門檻測試使用明確標示的合成原文／模型回應；沒有把 fixture 敘事寫成實際研究報告。控制器缺合法素材時，證明不會呼叫配音或渲染。
-
-## 真實服務結果
-
-實際執行：
-
-```bash
-/workspace/.venvs/game-doc/bin/python topic_pipeline.py \
-  --topic '寶可夢紅綠版，推卡車抓夢幻的都市傳說' --minutes 12
-```
-
-退出 2。報告 `status=BLOCKED`、`failed_stage=bilingual_topic_expansion`、`blocker.code=MODEL_NETWORK`、`Model endpoint unavailable (ProxyError)`，沒有輸出紀錄片 MP4。當次所有下游真實階段均 **未執行**，不能宣稱遊戲研究／旁白／語義匹配通過。
-
-另外執行實際服務連線與配音測試：
-
-| 服務 | 觀測 |
+| 真實服務執行 | 結果 |
 | --- | --- |
-| Bing RSS 搜尋 | `www.bing.com: ProxyError` |
-| Commons API | `commons.wikimedia.org: ProxyError` |
-| GitHub Models | `MODEL_NETWORK`；憑證是否有模型權限尚無法判定 |
-| Edge 台灣中文配音 | `TTS_UNAVAILABLE`、`ClientHttpProxyError` |
-| Git repository HTTPS read | `git ls-remote origin HEAD` 成功，與起始 HEAD 相符 |
-| GitHub API | `gh api user` 與 repo API 都 `Forbidden`；不能據此推論要新增 GitHub token |
+| [Gemini 文字＋圖片](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40609620530) | 使用者覆寫的 `gemini-3.5-flash-lite` 正確辨識紅／藍測試圖並回覆繁中輸入；1,171 輸入／35 輸出 tokens。搜尋回傳 10 筆真實 RSS，Commons API 亦可讀。不是實際遊戲辨識驗收 |
+| [Kokoro CPU 真正合成](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40611170577) | 2 分 12 秒，`hexgrad/Kokoro-82M-v1.1-zh`、`zf_094` 產出 9.625 秒 WAV 與 2 段繁中字幕；完整解碼、時間與讀速檢查通過。458 KB artifact 可聆聽；自然度、台灣口音與長稿節奏尚未驗收 |
+| Edge TTS 7.3.1 | 升級官方新握手支援後仍 `NoAudioReceived`，不宣稱可用；Actions 正式預設改用已實測的 Kokoro CPU，保留 Edge 選項 |
 
-執行時 runtime 的 `allowed_hosts=[]`、package-manager preset、`state=enforced`；新增網域僅存入 editable draft，未套用／發布。具體阻礙是目前網路政策，不是假定沒有金鑰；沒有印出或搬移任何憑證。
+本機 CPU 語音套件真正安裝成功：torch 2.14.1+cpu、kokoro／misaki 0.9.4、transformers 4.57.6、spaCy 3.8.18、spacy-curated-transformers 0.3.1；無 CUDA 執行依賴。GHA 安裝 espeak-ng 後真實合成成功；本機僅驗證依賴及中文前端載入，沒有在網路被擋的環境假稱再次下載模型／配音。
 
-## 未驗證與限制
+## 先前真實失敗與修正依據
 
-真實 10–15 分鐘影片、自然度與台灣口音、實際遊戲視覺辨識、可信的寶可夢故事、合法寶可夢畫面及成本尚未驗收。沒有測試 Kokoro 模型下載／合成，也沒有將一般股票片、文字卡、合成測試片或參考影片當成製作成果。
-
-先檢閱／儲存並發布雲端網域設定，重新測試各服務；再確認現有模型認證權限或安全配置另一相容提供者。若後續找不到合法且相符的素材，正確驗收結果應是明確阻擋與缺口報告，不是 MP4。
-
-## 追加驗證：同步、中斷與真正的 GitHub runner
-
-新增具體測試後，本機 **65 tests passed in 15.23s**。其中包含：
-
-- 12 段交替 440／880 Hz、每段 1.113 秒的實際音訊渲染；解碼波形做 FFT，逐一確認每個預期切點前後 100 ms 的聲音頻率。這是同步標記，不是 AI 配音。
-- 測試曾發現逐段 AAC 串接的補樣累積：容器顯示約 13.389 秒，實際解碼 PCM 約 13.824 秒，而預期為 13.356 秒。修正為 PCM 先串接、整片只編碼一次 AAC 後，逐切點測試通過；修正後容器約 13.368 秒，完整解碼與影音長度 QA 通過。
-- 旁白僅 1 秒、畫面 4 秒的實際影片，現在會被 QA 拒絕，避免容器總長正常卻無完整旁白。
-- 真正啟動子行程並送出 SIGTERM，驗證退出 130、保存 `CANCELLED` 和當下階段，且無成品 MP4；另驗證配音中斷時保留已完成段數。
-- 原文標點與中英混合空格保留；相同全文的不同網域轉載不計兩份證據；不存在的日期被拒絕。
-- 模型 fixture 測試驗證缺失／null usage 計數不會誤拒合法內容，只有完整 JSON fence 可剝除，任意文字中的 JSON 不會被當成有效回應。這些 fixture 不代表真實模型內容已成功。
-
-已在 GitHub runner 實際執行：
-
-| 執行 | 已觀察結果 |
+| 版本／執行 | 觀察與修正 |
 | --- | --- |
-| [Documentary tests，17476a8](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40596644343) | **Success**，Python 3.11，56 項測試所在的工作流程完成，總時間約 1 分 16 秒 |
-| [寶可夢題材，17476a8](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40596644284) | **Failure**、退出 2，保留診斷 artifact；公開頁面無詳細日誌 |
-| [寶可夢題材，d04dd95](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40597089629) | 公開註記確認 `bilingual_topic_expansion: MODEL_SCHEMA`，沒有 MP4；這是 GitHub runner 的模型回應問題，與 Codex 開發機的代理阻擋不同 |
+| [0ac78d2](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40660659670) | 寶可夢 12 篇本文、0 篇相關引句、0 項候選。混入棒球、超市、芝加哥頁面，原先只依序讀 Bing 結果不可靠 |
+| [b46981a](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40662875993) | 加入多引擎／BM25 後仍不足；寶可夢 15 篇／1 篇相關，DOOM 18 篇／2 篇相關，各 0 候選。免費搜尋不保證可靠 |
+| [db91d09](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40665571792) | 沿真實百科引用找到更相關來源，但模型抄錄原文出現逐字／長度問題；之後改為由程式依原文 offset 取引句、模型只選 ID |
+| [c85200e](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40668739720) | 寶可夢 18 篇／9 篇相關、2 項候選；DOOM 有無效選取。新增有界格式修復與未審閱來源狀態 |
+| [4814982](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40671454778) | 寶可夢 18 篇／12 篇相關、DOOM 15 篇／13 篇相關，均只 3 項候選；仍停止，沒有強迫湊故事 |
+| [0ed257f](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40673316910) | 要求分開有證據的原子事實後，寶可夢產生 6 候選，但 C5 缺第二出版者；DOOM 仍僅 3 候選。改為個別排除不合格項，保留項仍須全數審核且至少 4 項 |
 
-這些結果證明實際 Actions 安裝／測試可運作，以及真實題材會明確阻擋；尚未證明研究、配音或成品完成。新增診斷與解析修正後會針對已發現的原因重試，不把 HTTP 200 當作有效內容。開發機的 GitHub PR API 仍受既有網路政策阻擋。
+這些失敗都沒有當成合格腳本或影片。最新研究成功僅對上列單一真實題目及該次服務回應成立，尚未證明任意遊戲題材都會成功。
 
-## 確認模型服務退役與移除錯誤預設
+## 操作與尚未驗收
 
-- [Documentary tests，2e8a8f8](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40597510462)：**Success**，65 項測試所在工作流程完成，約 56 秒。
-- [寶可夢題材，2e8a8f8](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40597510479)：公開註記明確顯示 `Model HTTP 200 response is not a JSON envelope`，並非有效內容。沒有 MP4。
-- 接著讀取 [GitHub 官方 github/docs 原始文件](https://github.com/github/docs/blob/main/content/github-models/index.md)，確認其原文：`As of July 30, 2026 ... fully ... retired`，且 `inference API ... no longer available to any customer`。原先選用該服務作為預設是錯誤設定，已移除。
-- 現在必須明確設定 `LLM_BASE_URL`、`LLM_MODEL` 及對應提供者的 `LLM_API_KEY`；不再把 GitHub token 當作其他提供者的金鑰，也不會向退役服務反覆索取新 token。官方 Google SDK README 的現行示例包含 `gemini-flash-latest`，可作為評估免費額度方案的起點，但尚未取得金鑰或實測其完整流程。
+見 [白話使用說明](USER_STAGE.md)。`goal=research` 到來源／證據包；`goal=script` 接著嘗試原創長稿；`goal=movie` 嘗試完整影片。只有完整成片 QA 通過才會標示 `COMPLETE_AUTOMATED_CHECKS`。腳本／研究成功皆不等於 MP4。
 
-HTTP 200、有效 JSON、模型輸出 schema、主張證據、合法素材及影片品質是不同的驗收門檻，沒有任何一項可代替其他項目。更新金鑰需求並不代表金鑰已配置，保存環境草稿也不代表它已套用或發布。
+仍缺少真實長稿與 10–15 分鐘配音實測、可用且相關的授權遊戲錄影、實際遊戲 VLM 影格匹配與長片品質驗收。腳本長度目前按字數估算，正式流程必須配音後量測片長，超出 600–900 秒／目標容差即停止，不能靠拉長、重播或文字卡補足。來源有下載與本文保留上限、雜湊與截斷標記；不得宣稱看過未擷取內容。
 
-移除退役預設與新增提供者安全設定檢查後，本機最終檢查為 **70 passed in 15.02s**，Actionlint 與 `git diff --check` 亦通過。新增測試證明即使只有 GitHub token，也不會自動向另一家模型服務傳送它；設定缺少端點／模型名稱時亦不會傳送通用 API key。
+Gemini Actions 金鑰已可用，不要求重填。免費帳戶資格、API／Actions 額度及素材權利各有條件；本次使用量可供估算，但沒有宣稱每天長片零成本。較早 OpenAI 測試的 insufficient_quota 已被使用者改用 Gemini，並非目前要再次充值或更換金鑰的理由。
 
-[最終題材前置檢查，106d42e](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40598629461) 的公開註記實際確認三項設定都缺少：`LLM_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL`。退出 2，沒有發送推論請求或製作影片。這個結果是設定不足的明確阻擋，不是成功產片；也不是要求新增 GitHub token。
+測試後清空 `config/topics.json` 與 `config/research-topics.json`，避免定時或推送重複消耗額度；空清單的綠燈只代表略過，不算真實題目驗收。排程合併後為台灣 09:20，最多三題批次。既有 render.py、Kokoro、Piper、Pixabay、Wikimedia 保留。
 
-[最終 Documentary tests，106d42e](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40598629632)：**Success**，Python 3.11，70 項測試所在工作流程完成，約 56 秒。這與本機 70 項測試結果一致，仍不代表真實研究、模型或影片產製完成。
+## 雲端設定與 PR
 
-完成驗證後已將 `config/topics.json` 恢復 `[]`，避免每日反覆執行測試題材。PR API 仍受這台 Codex 環境尚未套用的網路政策阻擋；完整 PR 描述已保存在 [PR_DESCRIPTION.md](PR_DESCRIPTION.md)。
+目前 Codex runtime 仍是 revision 1、`allowed_hosts=[]`、無本機模型金鑰；GitHub Actions 是另一環境。Git HTTPS 推送正常，但 GitHub API 被現行網路政策拒絕，不能下載需登入的 artifact 或建立 PR。沒有要求新 token，也沒有以工作流程代理 API 繞過政策。
 
-## 使用者設定 GPT 金鑰後的實跑
-
-| 執行 | 真實結果 |
-| --- | --- |
-| [bf62acb：首次檢查使用者設定](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40602841674) | `LLM_API_KEY` 已被讀取，仍缺端點／模型值；沒有要求重新提供金鑰 |
-| [ade8bcd：使用專案 GPT 設定](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40603830048) | 已通過前置檢查，第一個實際 API 請求回傳 HTTP 429 |
-| [4f5654a：安全解析 429](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40604393457) | 公開註記明確確認 `MODEL_UNAVAILABLE`、`HTTP 429`、`code=insufficient_quota`、`media_type=application/json`。已停止推論，未進入研究／腳本／素材／配音／渲染 |
-| [4f5654a：82 項測試](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40604393511) | 真正 Python 3.11 GitHub runner **Success**，約 54 秒；本機 **82 passed in 15.55s** |
-
-`config/model.json` 明確選用 OpenAI `gpt-4.1-mini`，讓使用者只需設定金鑰；Variables／Secrets 仍可覆寫非機密端點及模型。新增安全錯誤分類區分 API 額度、頻率、金鑰和參數，原始錯誤訊息及金鑰不會寫入報告。已知 `insufficient_quota` 不觸發額外模型目錄探測或生成重試。
-
-目前需使用者在 OpenAI API 帳務頁確認金鑰所屬帳戶／專案有可用 API 餘額及額度。ChatGPT 訂閱與 API 帳務分開；程式不能替使用者充值或變更帳務。付費並非唯一選項，也可改用有實際可用免費額度的相容提供者，但此處沒有宣稱替代方案已通過完整影片驗收。此次驗證後再次清空題材清單，避免明知額度不足仍持續每日執行。
-
-雲端草稿已增加 `api.openai.com` 網域及更新非機密設定建議。既有個人 `LLM_API_KEY` 需求仍綁定較早的 Gemini 目的地；設定工具拒絕直接改變已有綁定，因此該金鑰目的地沒有被自動改寫或複製，若要在 Codex 本機使用 OpenAI，需於環境設定編輯既有需求為 `api.openai.com`。這與已成功讀到金鑰的 GitHub Actions 設定不同，不會修復目前的 API 額度問題。
+已保存可重用的安裝／啟動與 Gemini 網域設定草稿。保存草稿不代表套用、發布或填入憑證；若要這台 Codex 直接呼叫相關服務，需要在環境設定檢閱、儲存並發布，再重測實際權限。準備好的 [PR 描述](PR_DESCRIPTION.md) 和 [建立 PR 入口](https://github.com/Beetheone/free-ai-video-generator/pull/new/feat/topic-documentary-pipeline) 可供審閱；尚未建立 PR。
