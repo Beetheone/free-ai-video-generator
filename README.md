@@ -4,7 +4,7 @@
 
 到 [Actions → One Topic Game Documentary](https://github.com/Beetheone/free-ai-video-generator/actions/workflows/one-topic-documentary.yml)，輸入中文題材與 10、12 或 15 分鐘。腳本與搜尋詞由系統產生，不必手寫分鏡。流程包含中英文研究、原文引句與跨來源審核、原創繁體中文腳本、Commons 授權遊戲影片、實際影格匹配、中文旁白、字幕、1080p MP4、封面與來源報告。
 
-**尚未證明能自動完成任意題材的高品質紀錄片。** 已驗證實際渲染、音畫同步與拒絕不合格內容，原有 82 項測試曾在 GitHub Actions 成功。先前 GPT 實測回報 `429 insufficient_quota`；使用者現已改選 Gemini，已切換專案預設並新增服務實測流程。缺少合法且相符的畫面時會回傳失敗與報告，沒有文字卡、無關素材或示範影片補位。詳見 [操作、驗證結果與限制](docs/DOCUMENTARY.md) 和 [第三方評估](docs/THIRD_PARTY.md)。
+**尚未證明能自動完成任意題材的高品質紀錄片。** 已驗證實際渲染、音畫同步與拒絕不合格內容，88 項測試在 GitHub Actions 成功。使用者現已改選 Gemini，真實文字＋圖片推論、搜尋與 Commons API 已通過；Edge 配音仍未取得音訊，正獨立驗證 Kokoro CPU 替代。缺少合法且相符的畫面時會回傳失敗與報告，沒有文字卡、無關素材或示範影片補位。詳見 [操作、驗證結果與限制](docs/DOCUMENTARY.md) 和 [第三方評估](docs/THIRD_PARTY.md)。
 
 目前依使用者選擇，以 [config/model.json](config/model.json) 設定 Gemini `gemini-flash-latest` 與官方 OpenAI 相容端點；首次需安全填入 GitHub Secret `LLM_API_KEY`。`LLM_BASE_URL`、`LLM_MODEL` 的 Actions Variables 或 Secrets 仍會覆寫專案設定，請更新或移除舊的 GPT 覆寫值。Gemini 免費資格與額度依帳戶而異，不保證足夠每天產片。可先執行 [Verify Gemini documentary environment](https://github.com/Beetheone/free-ai-video-generator/actions/workflows/verify-documentary-environment.yml)，以一個合成色塊圖與繁中輸入檢查推論，另檢查搜尋、Commons、實際台灣中文配音；這不是遊戲影片驗收。旁白預設 Edge，可選 Kokoro CPU。每日台灣時間 09:20 排程與最多三題批次已接上；[config/topics.json](config/topics.json) 預設空陣列，避免未設定就消耗額度。
 

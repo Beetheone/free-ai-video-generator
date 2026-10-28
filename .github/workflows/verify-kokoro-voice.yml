@@ -1,0 +1,61 @@
+name: Verify Kokoro CPU Chinese voice
+
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/verify-kokoro-voice.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  voice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OMP_NUM_THREADS: '2'
+      TOKENIZERS_PARALLELISM: 'false'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements-documentary.txt
+      - name: Install optional Kokoro CPU dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-noto-cjk espeak-ng
+          python -m pip install -r requirements-documentary.txt
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'kokoro>=0.9.4,<1' 'misaki[zh]>=0.8.2,<1' soundfile
+          python -m pip check
+      - name: Generate and decode actual Chinese speech without model API calls
+        run: python -m documentary.preflight --voice-only --tts kokoro
+      - name: Publish voice result
+        if: always()
+        run: |
+          python - <<'PY'
+          import html, json, os
+          from pathlib import Path
+          for path in Path('output/environment-checks').glob('*/report.json'):
+              report = json.loads(path.read_text(encoding='utf-8'))
+              for name, check in report['checks'].items():
+                  message = name + ': ' + json.dumps(check, ensure_ascii=False)
+                  message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                  level = 'notice' if check['status'] == 'PASS' else 'error'
+                  print('::' + level + ' title=Kokoro voice check::' + message)
+              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as f:
+                  f.write('<pre>' + html.escape(json.dumps(report, ensure_ascii=False, indent=2)) + '</pre>\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kokoro-voice-${{ github.run_id }}
+          path: |
+            output/environment-checks/**/report.json
+            output/environment-checks/**/voice-sample.wav
+            output/environment-checks/**/voice-sample.srt
+          if-no-files-found: warn
+          retention-days: 7

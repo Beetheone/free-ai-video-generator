@@ -17,6 +17,15 @@
 
 Codex 雲端仍是舊 runtime：無模型金鑰、沒有 Gemini／研究／配音網域權限。已保存 Gemini 非機密設定建議與新版啟動說明；既有金鑰需求的目的地本來就是 Gemini，不必另加重複項目。草稿保存不是套用或發布，也與 GitHub repository Secrets 分開。
 
+[加入 Secret 名稱支援後的實測，aaee176](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40609620530)，56 秒：
+
+- **Gemini 文字／視覺 PASS**。實際採用使用者覆寫的 `gemini-3.5-flash-lite`，一次真實推論正確辨識紅／藍合成圖並回覆原繁中輸入；回報 1,171 輸入 tokens、35 輸出 tokens。這證明目前金鑰、模型與相容端點可用，不代表每日產片額度或真實遊戲辨識達標。無須再新增或重填金鑰。
+- **搜尋、Commons API PASS**。
+- Edge 7.3.1 已越過先前握手錯誤，但仍得到 **`NoAudioReceived`**，無音訊成品。版本升級沒有被當成自然配音成功。
+- [同版本 Python 3.11 測試工作流程](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40609620539) **Success**，1 分 7 秒；對應本機 88 項測試。
+
+另新增獨立 Kokoro CPU 短句實測，重用現有 `kokoro_voice.py` 與正式旁白／字幕檢查；不再重複呼叫 Gemini。Kokoro 是普通話替代，不保證台灣口音；需產生實際 WAV、完整解碼並驗證字幕，仍須聆聽自然度。
+
 執行日期：2026-10-28（台灣）。起始版本：`14c153c48fcaab392fe616cbddff52e5c54bf264`。開發機：Linux、Python 3.12.14、FFmpeg／FFprobe、Noto CJK，5 個可見 CPU，32 GiB 可用記憶體。Actions 設定為 Python 3.11、CPU 兩執行緒。以下保留第一階段紀錄，後續 GitHub runner 實跑結果見文末。
 
 ## 已通過

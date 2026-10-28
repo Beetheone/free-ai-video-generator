@@ -1,6 +1,7 @@
 """Small, real service checks; no documentary or factual-quality claim."""
 import argparse
 import json
+import os
 import uuid
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -54,26 +55,28 @@ def check_commons(_out):
     return {"scope": "Commons API connectivity only; no licensed or relevant gameplay acquired"}
 
 
-def check_voice(out):
+def check_voice(out, engine="edge"):
     text = "這是繁體中文旁白測試，遊戲紀錄片環境正在確認。"
-    audio = synthesize(text, out / "voice-sample.mp3")
+    dest = out / ("voice-sample.mp3" if engine == "edge" else "voice-sample.wav")
+    audio = synthesize(text, dest, engine=engine)
     path = Path(audio["path"])
     command(["ffmpeg", "-v", "error", "-i", path, "-f", "null", "-"], timeout=30)
     (out / "voice-sample.srt").write_text("\n".join(
         f"{i}\n{stamp(c['start'])} --> {stamp(c['end'])}\n{c['text']}\n"
         for i, c in enumerate(audio["cues"], 1)), encoding="utf-8")
-    return {"voice": "zh-TW-YunJheNeural", "seconds": audio["seconds"],
+    return {"engine": engine, "voice": "zh-TW-YunJheNeural" if engine == "edge" else os.getenv("KOKORO_VOICE", "zf_094"), "seconds": audio["seconds"],
             "caption_count": len(audio["cues"]), "sample": path.name,
-            "scope": "Actual TTS audio fully decoded and captions validated; naturalness requires listening"}
+            "scope": "Actual TTS audio fully decoded and captions validated; naturalness requires listening. Kokoro is Mandarin, not verified Taiwan pronunciation."}
 
 
-def verify(out):
+def verify(out, voice_only=False, engine="edge"):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=False)
-    report = {"status": "CHECKING", "scope": "Service smoke tests only; no documentary produced",
+    report = {"status": "CHECKING", "scope": "Voice service only; no model, search or footage checks" if voice_only else "Service smoke tests only; no documentary produced",
               "checks": {}}
-    for name, check in (("gemini_text_vision", check_model), ("search", check_search),
-                        ("commons", check_commons), ("taiwan_voice", check_voice)):
+    checks = [] if voice_only else [("gemini_text_vision", check_model), ("search", check_search), ("commons", check_commons)]
+    checks.append(("taiwan_voice" if engine == "edge" else "mandarin_voice", lambda out: check_voice(out, engine=engine)))
+    for name, check in checks:
         try:
             report["checks"][name] = {"status": "PASS", **check(out)}
         except Blocked as exc:
@@ -82,7 +85,8 @@ def verify(out):
             # SDK and XML errors may contain credential-bearing request details.
             report["checks"][name] = {"status": "BLOCKED", "code": "ENVIRONMENT_CHECK_ERROR", "detail": type(exc).__name__}
         save(out / "report.json", report)
-    report["status"] = "SERVICE_CHECKS_PASS" if all(c["status"] == "PASS" for c in report["checks"].values()) else "BLOCKED"
+    passed = all(c["status"] == "PASS" for c in report["checks"].values())
+    report["status"] = ("SELECTED_SERVICE_CHECKS_PASS" if voice_only else "SERVICE_CHECKS_PASS") if passed else "BLOCKED"
     save(out / "report.json", report)
     return report
 
@@ -90,10 +94,12 @@ def verify(out):
 def main(argv=None):
     p = argparse.ArgumentParser(description="Verify selected Gemini, search, Commons and real Taiwan TTS with small requests")
     p.add_argument("--out", type=Path, default=Path("output/environment-checks") / uuid.uuid4().hex)
+    p.add_argument("--voice-only", action="store_true", help="No model calls or search/Commons requests")
+    p.add_argument("--tts", choices=("edge", "kokoro"), default="edge")
     args = p.parse_args(argv)
-    report = verify(args.out)
+    report = verify(args.out, args.voice_only, args.tts)
     print(json.dumps(report, ensure_ascii=False, indent=2))
-    return 0 if report["status"] == "SERVICE_CHECKS_PASS" else 2
+    return 0 if report["status"] in {"SERVICE_CHECKS_PASS", "SELECTED_SERVICE_CHECKS_PASS"} else 2
 
 
 if __name__ == "__main__":

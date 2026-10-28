@@ -64,7 +64,7 @@ def test_independent_services_still_report_after_model_blocker(tmp_path, monkeyp
         raise Blocked("MODEL_PROVIDER_MISMATCH", "Old provider override")
     monkeypatch.setattr(preflight, "check_model", blocked)
     for name in ("check_search", "check_commons", "check_voice"):
-        monkeypatch.setattr(preflight, name, lambda _: {"scope": "explicit fake test"})
+        monkeypatch.setattr(preflight, name, lambda *a, **k: {"scope": "explicit fake test"})
     out = tmp_path / "new-run"
     report = preflight.verify(out)
     assert report["status"] == "BLOCKED"
@@ -72,3 +72,17 @@ def test_independent_services_still_report_after_model_blocker(tmp_path, monkeyp
     assert json.loads((out / "report.json").read_text())["status"] == "BLOCKED"
     with pytest.raises(FileExistsError):
         preflight.verify(out)
+
+
+def test_voice_only_does_not_spend_model_quota_or_claim_all_services_pass(tmp_path, monkeypatch):
+    def forbidden(*a, **k):
+        raise AssertionError("Voice-only check must not call model, search or footage services")
+    for name in ("check_model", "check_search", "check_commons"):
+        monkeypatch.setattr(preflight, name, forbidden)
+    def voice(out, engine):
+        assert engine == "kokoro"
+        return {"scope": "explicit fake test"}
+    monkeypatch.setattr(preflight, "check_voice", voice)
+    report = preflight.verify(tmp_path / "voice-run", voice_only=True, engine="kokoro")
+    assert report["status"] == "SELECTED_SERVICE_CHECKS_PASS"
+    assert set(report["checks"]) == {"mandarin_voice"}
