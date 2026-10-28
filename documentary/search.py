@@ -19,7 +19,7 @@ def tokens(text):
 
 
 def topic_text(plan):
-    return " ".join(str(plan.get(k, "")) for k in ("english_topic", "game")) + " " + " ".join(plan.get("queries_zh", []) + plan.get("queries_en", []))
+    return " ".join(str(plan.get(k, "")) for k in ("original_topic", "english_topic", "game")) + " " + " ".join(plan.get("queries_zh", []) + plan.get("queries_en", []))
 
 
 def safe_lead(title, url, snippet="", **meta):

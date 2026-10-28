@@ -14,6 +14,11 @@ on:
         type: choice
         default: '12'
         options: ['10', '12', '15']
+      goal:
+        description: '輸出階段：script 研究與腳本；research 證據；movie 完整影片'
+        type: choice
+        default: movie
+        options: [movie, script, research]
       tts:
         description: '旁白：Kokoro CPU 普通話已實測；Edge 台灣中文目前無音訊'
         type: choice
@@ -70,14 +75,14 @@ jobs:
           sudo apt-get install -y ffmpeg fonts-noto-cjk
           python -m pip install -r requirements-documentary.txt
       - name: Optional Kokoro CPU
-        if: steps.queue.outputs.active == 'true' && (inputs.tts || 'kokoro') == 'kokoro'
+        if: steps.queue.outputs.active == 'true' && (inputs.goal || 'movie') == 'movie' && (inputs.tts || 'kokoro') == 'kokoro'
         run: |
           sudo apt-get update
           sudo apt-get install -y espeak-ng
           python -m pip install -r requirements-kokoro-cpu.txt
           python -m pip check
       - name: Record prerequisite diagnosis without network calls
-        if: steps.queue.outputs.active == 'true'
+        if: steps.queue.outputs.active == 'true' && (inputs.goal || 'movie') == 'movie'
         env:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY || secrets.GEMINI_API_KEY || secrets.GOOGLE_API_KEY }}
           LLM_BASE_URL: ${{ vars.LLM_BASE_URL || secrets.LLM_BASE_URL }}
@@ -92,16 +97,20 @@ jobs:
           MINUTES: ${{ inputs.minutes || '12' }}
           TTS: ${{ inputs.tts || 'kokoro' }}
           EVENT: ${{ github.event_name }}
+          GOAL: ${{ inputs.goal || 'movie' }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY || secrets.GEMINI_API_KEY || secrets.GOOGLE_API_KEY }}
           LLM_BASE_URL: ${{ vars.LLM_BASE_URL || secrets.LLM_BASE_URL }}
           LLM_MODEL: ${{ vars.LLM_MODEL || secrets.LLM_MODEL }}
           LLM_MAX_CALLS: '180'
         run: |
           if [ "$EVENT" = workflow_dispatch ]; then
-            python topic_pipeline.py --topic "$TOPIC" --minutes "$MINUTES" --tts "$TTS"
+            python topic_pipeline.py --topic "$TOPIC" --minutes "$MINUTES" --tts "$TTS" --stop-after "$GOAL"
           else
-            python topic_pipeline.py --topics-file config/topics.json --minutes "$MINUTES" --tts "$TTS"
+            python topic_pipeline.py --topics-file config/topics.json --minutes "$MINUTES" --tts "$TTS" --stop-after "$GOAL"
           fi
+      - name: Inspect footage permission leads for research milestones
+        if: always() && steps.queue.outputs.active == 'true' && (inputs.goal || 'movie') != 'movie'
+        run: python -m documentary.rights_probe --root output/documentaries
       - name: Diagnose ambiguous provider failures without generation
         if: failure() && steps.produce.outcome == 'failure'
         env:
@@ -122,7 +131,7 @@ jobs:
           for path in reports:
               report = json.loads(path.read_text(encoding='utf-8'))
               chunks.append('<pre>' + html.escape(json.dumps(report, ensure_ascii=False, indent=2)) + '</pre>\n\n')
-              if report.get('status') != 'COMPLETE_AUTOMATED_CHECKS':
+              if report.get('status') not in ('COMPLETE_AUTOMATED_CHECKS', 'SCRIPT_READY', 'RESEARCH_READY'):
                   blocker = report.get('blocker', {})
                   message = report.get('failed_stage', 'unknown') + ': ' + blocker.get('code', 'UNKNOWN') + ' — ' + blocker.get('detail', 'Inspect qa_report.json')
                   if report.get('diagnostics'):
@@ -161,6 +170,9 @@ jobs:
             output/documentaries/**/documentary.srt
             output/documentaries/**/thumbnail.jpg
             output/documentaries/**/ATTRIBUTION.md
+            output/documentaries/**/PROGRESS.md
+            output/documentaries/**/SCRIPT.md
+            output/documentaries/**/FOOTAGE_GAPS.md
             output/documentaries/**/*.json
           if-no-files-found: warn
           retention-days: 7

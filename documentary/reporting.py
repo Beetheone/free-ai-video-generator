@@ -30,6 +30,8 @@ def read_json(path, default):
 def write_progress(out, report):
     out = Path(out)
     research = read_json(out / "research.json", {})
+    if not isinstance(research, dict):
+        research = {}
     excerpts = read_json(out / "research_excerpts.json", [])
     sources = research.get("sources", []) if isinstance(research, dict) else []
     excerpt_counts = {s["id"]: len(s.get("quotes", [])) or int(bool(s.get("text")))
@@ -39,6 +41,7 @@ def write_progress(out, report):
                 "has_relevant_exact_quotes": bool(excerpt_counts.get(s.get("id")))}
                for s in sources if isinstance(s, dict)]
     save(out / "research_summary.json", {"sources": summary, "diagnostics": report.get("diagnostics", {}),
+         "queries": {k: read_json(out / "topic.json", {}).get(k, []) for k in ("queries_zh", "queries_en", "reference_titles_en")},
          "search_rounds": research.get("search_rounds", 0),
          "leads_by_engine": dict(Counter(s.get("engine", "unknown") for s in research.get("leads", []) if isinstance(s, dict))),
          "search_errors": [{"engine": e["engine"], "error_type": e.get("error_type")} for e in research.get("errors", []) if "engine" in e],
