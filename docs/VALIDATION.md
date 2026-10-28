@@ -1,5 +1,22 @@
 # 驗證紀錄
 
+## 改用 Gemini 後的環境實測（2026-10-28）
+
+已依使用者最新選擇，將專案預設改成 Gemini 官方 OpenAI 相容端點與 `gemini-flash-latest`，並新增獨立服務檢查；不消耗 10–15 分鐘產片所需的大量推論。
+
+[首次真實服務檢查，f3029bc](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40609328086)，44 秒，結果：
+
+| 檢查 | 實際結果 |
+| --- | --- |
+| 模型 | `MODEL_CREDENTIAL_REQUIRED`；GitHub runner 沒有讀到 `LLM_API_KEY`，未發送推論 |
+| 搜尋 | **PASS**，真實 Bing RSS 回傳 10 筆；沒有把搜尋摘要當已查證證據 |
+| Commons | **PASS**，真實 API 站台中繼資料可讀；未宣稱取得合法遊戲素材 |
+| 台灣中文配音 | `TTS_UNAVAILABLE`、`WSServerHandshakeError`；沒有產生可驗收旁白 |
+
+後續修正接受常見 Gemini Secret 名稱：`LLM_API_KEY` → `GEMINI_API_KEY` → `GOOGLE_API_KEY`。亦查閱 [Edge TTS 官方 releases](https://github.com/rany2/edge-tts/releases)，確認 7.3.0 新增 Sec-MS-GEC v2、7.3.1 修正日期解析；將原來固定的 7.2.7 升級為 **7.3.1**，再實測，不使用停用 TLS 或自製憑證繞過方式。升級後本機 **88 passed in 15.05s**、`pip check`、Actionlint 與 `git diff --check` 通過。新增測試使用明示 fake API，驗證錯誤提供者在送出金鑰前停止、實際 JPEG 的編碼與回應門檻、逐服務獨立保存阻礙；這些測試不代表真實模型通過。
+
+Codex 雲端仍是舊 runtime：無模型金鑰、沒有 Gemini／研究／配音網域權限。已保存 Gemini 非機密設定建議與新版啟動說明；既有金鑰需求的目的地本來就是 Gemini，不必另加重複項目。草稿保存不是套用或發布，也與 GitHub repository Secrets 分開。
+
 執行日期：2026-10-28（台灣）。起始版本：`14c153c48fcaab392fe616cbddff52e5c54bf264`。開發機：Linux、Python 3.12.14、FFmpeg／FFprobe、Noto CJK，5 個可見 CPU，32 GiB 可用記憶體。Actions 設定為 Python 3.11、CPU 兩執行緒。以下保留第一階段紀錄，後續 GitHub runner 實跑結果見文末。
 
 ## 已通過
