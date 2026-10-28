@@ -79,7 +79,7 @@ def test_narration_checkpoint_survives_interruption(tmp_path, monkeypatch):
     out = tmp_path / "run"
     monkeypatch.setattr(pipeline, "plan_topic", lambda *a: {"footage_queries":[]})
     monkeypatch.setattr(pipeline, "research", lambda *a: [])
-    monkeypatch.setattr(pipeline, "fact_check", lambda *a: {})
+    monkeypatch.setattr(pipeline, "fact_check", lambda *a, **k: {})
     monkeypatch.setattr(pipeline, "write_script", lambda *a: {"scenes":[{"id":1,"narration":"合成測試甲"},{"id":2,"narration":"合成測試乙"}]})
     class FakeLibrary:
         records = [{}]

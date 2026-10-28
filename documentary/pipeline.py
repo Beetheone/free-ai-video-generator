@@ -15,7 +15,7 @@ from .core import Blocked, Model, Web, save
 from .doctor import recovery
 from .footage import Library
 from .production import FONT, inspect_media, render, synthesize, thumbnail
-from .research import fact_check, plan_topic, research, write_script
+from .research import fact_check, plan_repair, plan_topic, research, write_script
 from .reporting import write_progress
 
 
@@ -62,7 +62,20 @@ def run_pipeline(topic, minutes, out, engine="edge", voice="zh-TW-YunJheNeural",
         sources = research(web, plan, out)
         complete()
         enter("evidence_audit")
-        ledger = fact_check(model, plan, sources, out)
+        quote_cache = {}
+        for attempt in range(2):
+            try:
+                ledger = fact_check(model, plan, sources, out, quote_cache=quote_cache)
+                break
+            except Blocked as exc:
+                save(out / f"evidence_attempt_{attempt+1}.json", {"code": exc.code, "detail": exc.detail})
+                if exc.code != "EVIDENCE_INSUFFICIENT" or attempt == 1 or len(sources) < 3:
+                    raise
+                enter("research_repair")
+                repaired_plan = plan_repair(model, plan, sources, out)
+                sources = research(web, repaired_plan, out, previous=sources)
+                complete()
+                enter("evidence_audit")
         complete()
         if stop_after == "research":
             report["status"] = "RESEARCH_READY"

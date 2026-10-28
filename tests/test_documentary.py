@@ -119,7 +119,11 @@ def test_research_reads_bodies_not_headlines(tmp_path):
             if params:
                 return ("<rss><channel>" + "".join(f"<item><title>Unverified headline {i}</title><link>https://fixture{i}.example.org/article</link></item>" for i in range(3)) + "</channel></rss>").encode(), url
             return body.encode(), url
-    sources = research(FakeWeb(), {"queries_zh": ["測試"], "queries_en": ["fixture"]}, tmp_path)
+    class FixtureSearch:
+        def discover(self, q, language):
+            from documentary.research import discover
+            return discover(FakeWeb(), q)
+    sources = research(FakeWeb(), {"queries_zh": ["測試"], "queries_en": ["fixture"]}, tmp_path, searcher=FixtureSearch())
     assert len(sources) == 3
     assert all("synthetic article" in s["text"] and "Unverified headline" not in s["text"] for s in sources)
 
@@ -127,8 +131,10 @@ def test_research_reads_bodies_not_headlines(tmp_path):
 def test_headlines_alone_cannot_pass(tmp_path):
     class EmptyWeb:
         def get(self, *args): return b"<rss><channel/></rss>", args[0]
+    class EmptySearch:
+        def discover(self, *args): return []
     with pytest.raises(Blocked) as exc:
-        research(EmptyWeb(), {"queries_zh": ["測試"], "queries_en": []}, tmp_path)
+        research(EmptyWeb(), {"queries_zh": ["測試"], "queries_en": []}, tmp_path, searcher=EmptySearch())
     assert exc.value.code == "RESEARCH_INSUFFICIENT"
     assert json.loads((tmp_path / "research.json").read_text())["sources"] == []
 
@@ -296,7 +302,7 @@ def test_missing_licensed_assets_stops_before_voice_or_render(tmp_path, monkeypa
     import documentary.pipeline as pipeline
     monkeypatch.setattr(pipeline, "plan_topic", lambda *a: {"footage_queries": ["fixture"]})
     monkeypatch.setattr(pipeline, "research", lambda *a: [{"id":"fixture"}])
-    monkeypatch.setattr(pipeline, "fact_check", lambda *a: {"claims": []})
+    monkeypatch.setattr(pipeline, "fact_check", lambda *a, **k: {"claims": []})
     monkeypatch.setattr(pipeline, "write_script", lambda *a: {"scenes": []})
     def forbidden(*args, **kwargs):
         pytest.fail("No voice/render may run when there are no licensed assets")

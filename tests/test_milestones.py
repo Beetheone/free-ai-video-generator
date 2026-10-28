@@ -19,7 +19,7 @@ def test_milestone_never_runs_production_or_claims_finished_film(tmp_path, monke
         sources = [{"id": "S1", "title": "Fixture", "url": "https://fixture.example.org/article", "text": "raw-source-must-not-appear-in-readable-report"}]
         save(out / "research.json", {"sources": sources})
         return sources
-    def fact_check(model, plan, sources, out):
+    def fact_check(model, plan, sources, out, **kwargs):
         ledger = {"claims": [{"id": "C1", "statement": "僅合成測試", "evidence": [{"source_id": "S1"}]}]}
         save(out / "evidence.json", ledger)
         return ledger
@@ -45,7 +45,7 @@ def test_milestone_never_runs_production_or_claims_finished_film(tmp_path, monke
 def test_failed_evidence_produces_plain_report_without_script(tmp_path, monkeypatch):
     monkeypatch.setattr(pipeline, "plan_topic", lambda *a: {})
     monkeypatch.setattr(pipeline, "research", lambda *a: [])
-    def blocked(*a):
+    def blocked(*a, **k):
         raise Blocked("EVIDENCE_INSUFFICIENT", "Explicit fixture with insufficient corroboration")
     monkeypatch.setattr(pipeline, "fact_check", blocked)
     out = tmp_path / "blocked"

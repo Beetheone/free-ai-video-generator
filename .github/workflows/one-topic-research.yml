@@ -60,6 +60,9 @@ jobs:
           else
             python topic_pipeline.py --topics-file config/research-topics.json --stop-after script --out output/research
           fi
+      - name: Inspect footage permission leads independently
+        if: always() && steps.queue.outputs.active == 'true'
+        run: python -m documentary.rights_probe --root output/research
       - name: Publish research milestone and safe source diagnostics
         if: always() && steps.queue.outputs.active == 'true'
         run: |
@@ -77,6 +80,11 @@ jobs:
                   summary = json.loads(summary_path.read_text(encoding='utf-8'))
                   message = json.dumps(summary, ensure_ascii=False).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
                   print('::notice title=Retrieved sources and relevant excerpts::' + message)
+              rights_path = path.with_name('footage_readiness.json')
+              if rights_path.exists():
+                  rights = json.loads(rights_path.read_text(encoding='utf-8'))
+                  public = {k: rights[k] for k in ('status', 'inspected_entries', 'candidate_count', 'rejected_entries', 'visual_relevance_verified')}
+                  print('::notice title=Footage permissions, not visual verification::' + json.dumps(public))
               with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as f:
                   f.write('<pre>' + html.escape(json.dumps(data, ensure_ascii=False, indent=2)) + '</pre>\n')
           PY
@@ -88,5 +96,6 @@ jobs:
             output/research/**/*.json
             output/research/**/PROGRESS.md
             output/research/**/SCRIPT.md
+            output/research/**/FOOTAGE_GAPS.md
           if-no-files-found: warn
           retention-days: 7
