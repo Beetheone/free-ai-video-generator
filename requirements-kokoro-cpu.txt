@@ -8,4 +8,4 @@ soundfile>=0.13,<1
 # Kokoro 0.9.4 predates Transformers 5 and the Thinc 9 curated stack.
 transformers>=4.51.3,<5
 spacy>=3.8,<3.9
-spacy-curated-transformers>=1.0,<2
+spacy-curated-transformers==0.3.1

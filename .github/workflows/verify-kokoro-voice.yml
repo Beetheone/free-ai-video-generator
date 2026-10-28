@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: kokoro-voice-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   voice:
     runs-on: ubuntu-latest
