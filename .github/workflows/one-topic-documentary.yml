@@ -15,9 +15,9 @@ on:
         default: '12'
         options: ['10', '12', '15']
       tts:
-        description: '旁白：Edge 台灣中文；Kokoro CPU 普通話'
+        description: '旁白：Kokoro CPU 普通話已實測；Edge 台灣中文目前無音訊'
         type: choice
-        default: edge
+        default: kokoro
         options: [edge, kokoro]
   schedule:
     # 09:20 Asia/Taipei. Queue is empty until configured.
@@ -70,19 +70,19 @@ jobs:
           sudo apt-get install -y ffmpeg fonts-noto-cjk
           python -m pip install -r requirements-documentary.txt
       - name: Optional Kokoro CPU
-        if: steps.queue.outputs.active == 'true' && inputs.tts == 'kokoro'
+        if: steps.queue.outputs.active == 'true' && (inputs.tts || 'kokoro') == 'kokoro'
         run: |
           sudo apt-get update
           sudo apt-get install -y espeak-ng
-          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-          python -m pip install 'kokoro>=0.9.4,<1' 'misaki[zh]>=0.8.2,<1' soundfile
+          python -m pip install -r requirements-kokoro-cpu.txt
+          python -m pip check
       - name: Record prerequisite diagnosis without network calls
         if: steps.queue.outputs.active == 'true'
         env:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY || secrets.GEMINI_API_KEY || secrets.GOOGLE_API_KEY }}
           LLM_BASE_URL: ${{ vars.LLM_BASE_URL || secrets.LLM_BASE_URL }}
           LLM_MODEL: ${{ vars.LLM_MODEL || secrets.LLM_MODEL }}
-          TTS: ${{ inputs.tts || 'edge' }}
+          TTS: ${{ inputs.tts || 'kokoro' }}
         run: python -m documentary.doctor --tts "$TTS" --out output/environment-diagnosis.json
       - name: Produce and enforce all gates
         id: produce
@@ -90,7 +90,7 @@ jobs:
         env:
           TOPIC: ${{ inputs.topic }}
           MINUTES: ${{ inputs.minutes || '12' }}
-          TTS: ${{ inputs.tts || 'edge' }}
+          TTS: ${{ inputs.tts || 'kokoro' }}
           EVENT: ${{ github.event_name }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY || secrets.GEMINI_API_KEY || secrets.GOOGLE_API_KEY }}
           LLM_BASE_URL: ${{ vars.LLM_BASE_URL || secrets.LLM_BASE_URL }}
