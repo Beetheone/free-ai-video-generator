@@ -23,22 +23,45 @@ jobs:
           python-version: '3.11'
           cache: pip
           cache-dependency-path: requirements-documentary.txt
-      - name: Install optional Kokoro CPU dependencies
+      - name: Install CPU system tools
+        id: system
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg fonts-noto-cjk espeak-ng
-          python -m pip install -r requirements-documentary.txt
-          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-          python -m pip install 'kokoro>=0.9.4,<1' 'misaki[zh]>=0.8.2,<1' soundfile
-          python -m pip check
+      - name: Install compatible Kokoro CPU stack
+        id: packages
+        run: |
+          mkdir -p output
+          python -m pip install -r requirements-kokoro-cpu.txt 2>&1 | tee output/kokoro-install.log
+      - name: Check all dependency constraints
+        id: integrity
+        run: python -m pip check 2>&1 | tee output/kokoro-integrity.log
       - name: Generate and decode actual Chinese speech without model API calls
         run: python -m documentary.preflight --voice-only --tts kokoro
       - name: Publish voice result
         if: always()
+        env:
+          SYSTEM: ${{ steps.system.outcome }}
+          PACKAGES: ${{ steps.packages.outcome }}
+          INTEGRITY: ${{ steps.integrity.outcome }}
         run: |
           python - <<'PY'
           import html, json, os
           from pathlib import Path
+          # This job receives no model API key. Package errors are bounded and
+          # URLs are withheld; never dump environment or credential files.
+          for filename in ('kokoro-install.log', 'kokoro-integrity.log'):
+              path = Path('output') / filename
+              if not path.exists():
+                  continue
+              for line in path.read_text(errors='replace').splitlines()[-35:]:
+                  if any(word in line for word in ('ERROR:', 'ModuleNotFoundError:', 'but you have', 'ResolutionImpossible')):
+                      if '://' in line:
+                          line = 'Package installation failed; inspect ' + filename
+                      line = line[:500].replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                      print('::error title=Kokoro installation::' + line)
+          if not list(Path('output/environment-checks').glob('*/report.json')):
+              print('::error title=Kokoro installation::No voice attempted; system=' + os.environ['SYSTEM'] + '; packages=' + os.environ['PACKAGES'] + '; integrity=' + os.environ['INTEGRITY'])
           for path in Path('output/environment-checks').glob('*/report.json'):
               report = json.loads(path.read_text(encoding='utf-8'))
               for name, check in report['checks'].items():
@@ -54,6 +77,8 @@ jobs:
         with:
           name: kokoro-voice-${{ github.run_id }}
           path: |
+            output/kokoro-install.log
+            output/kokoro-integrity.log
             output/environment-checks/**/report.json
             output/environment-checks/**/voice-sample.wav
             output/environment-checks/**/voice-sample.srt

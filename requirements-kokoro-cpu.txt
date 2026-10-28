@@ -1,0 +1,11 @@
+# Optional, jointly resolved with the documentary dependencies. CPU wheel only.
+--extra-index-url https://download.pytorch.org/whl/cpu
+-r requirements-documentary.txt
+torch==2.14.1+cpu
+kokoro==0.9.4
+misaki[zh]==0.9.4
+soundfile>=0.13,<1
+# Kokoro 0.9.4 predates Transformers 5 and the Thinc 9 curated stack.
+transformers>=4.51.3,<5
+spacy>=3.8,<3.9
+spacy-curated-transformers>=1.0,<2
