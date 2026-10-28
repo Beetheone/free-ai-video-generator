@@ -4,8 +4,8 @@ from urllib.parse import urlsplit
 import pytest
 
 from documentary import pipeline
-from documentary.core import Blocked
-from documentary.research import fact_check
+from documentary.core import Blocked, save
+from documentary.research import fact_check, plan_repair
 from documentary.search import Search, passages, rank_leads, tokens
 
 
@@ -52,11 +52,29 @@ def test_search_keeps_proxy_and_tls_and_rejects_private_leads(monkeypatch):
     assert len(results) == 1 and results[0]["url"] == "https://fixture.example.org/article"
 
 
+def test_prefetched_reference_body_is_used_before_keyword_heavy_summaries(tmp_path, monkeypatch):
+    import importlib
+    module = importlib.import_module('documentary.research')
+    wiki_url = 'https://en.wikipedia.org/wiki/Synthetic_fixture'
+    body = ('<html><body><article><h1>Explicit fixture</h1>' + '<p>Fictional source body for a retrieval test. ' + 'This is synthetic evidence only. ' * 30 + '</p></article></body></html>').encode()
+    monkeypatch.setattr(module, 'reference_leads', lambda *a: ([{'url': wiki_url, 'title': 'Fixture', 'engine': 'wikipedia_seed'}], {wiki_url: (body, wiki_url)}, []))
+    class Web:
+        def get(self, url):
+            assert url != wiki_url, 'Already downloaded canonical body must be reused'
+            return body, url
+    class SearchFixture:
+        def discover(self, *a):
+            return [{'url': f'https://publisher{i}.example.org/article', 'title': 'Synthetic bridge synthetic bridge'} for i in range(20)]
+    sources = module.research(Web(), {'english_topic': 'synthetic bridge', 'queries_zh': ['虛構橋樑'], 'queries_en': ['synthetic bridge']}, tmp_path, searcher=SearchFixture())
+    assert sources[0]['url'] == wiki_url
+    assert len(sources) == 12
+
+
 def test_empty_excerpt_cache_does_not_repeat_inference_or_pass_claim_gate(tmp_path):
     class Model:
         selections = 0
         def json(self, instruction, payload):
-            if "Select up to 3" in instruction:
+            if "quote_candidates" in payload:
                 self.selections += 1
                 return {"quote_ids": []}
             return {"claims": []}
@@ -68,6 +86,23 @@ def test_empty_excerpt_cache_does_not_repeat_inference_or_pass_claim_gate(tmp_pa
             fact_check(model, {"english_topic": "fictional bridge"}, sources, tmp_path, quote_cache=cache)
         assert exc.value.code == "EVIDENCE_INSUFFICIENT"
     assert model.selections == 3
+
+
+def test_gap_plan_uses_actual_missing_claims_and_does_not_repeat_seed_pages(tmp_path):
+    save(tmp_path / 'evidence_draft.json', {'claims': [{'statement': 'Explicit synthetic candidate'}], 'uncertainties': ['Missing fictional chronology']})
+    save(tmp_path / 'research_excerpts.json', [{'id': 'S1'}])
+    plan = {'english_topic': 'Synthetic topic', 'queries_zh': ['舊查詢'], 'queries_en': ['old query'],
+            'reference_titles_en': ['Old page'], 'candidate_urls': ['https://fixture.example.org/old']}
+    class Model:
+        def json(self, instruction, payload):
+            assert payload['candidate_claims'][0]['statement'] == 'Explicit synthetic candidate'
+            assert payload['uncertainties'] == ['Missing fictional chronology']
+            return {'queries_zh': ['新查詢'], 'queries_en': ['new query'], 'reference_titles_en': ['Old_page', 'New page'],
+                    'candidate_urls': ['https://fixture.example.org/old', 'https://fixture.example.org/new']}
+    repaired = plan_repair(Model(), plan, [{'id': 'S1', 'url': 'https://fixture.example.org/old'}], tmp_path)
+    assert repaired['reference_titles_en'] == ['New page']
+    assert repaired['candidate_urls'] == ['https://fixture.example.org/new']
+    assert plan['queries_en'] == ['old query']
 
 
 @pytest.mark.parametrize("code,repairs,status", [("EVIDENCE_INSUFFICIENT", 1, "RESEARCH_READY"),

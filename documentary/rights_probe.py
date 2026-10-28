@@ -1,14 +1,16 @@
 """Inspect real Commons permissions without downloading or approving gameplay."""
 import argparse
+from collections import Counter
 from pathlib import Path
 
 from .core import Blocked, Web, save
-from .footage import API, licensed_record
+from .footage import API, licensed_record, plain
 from .reporting import read_json
 
 
 def inspect_rights(web, queries, out):
     candidates, seen, errors, rejected = [], set(), [], 0
+    rejected_licenses = Counter()
     for query in queries[:3]:
         try:
             data = web.json(API, {"action": "query", "format": "json", "generator": "search",
@@ -24,6 +26,9 @@ def inspect_rights(web, queries, out):
                 record = licensed_record(page)
                 if record is None:
                     rejected += 1
+                    info = (page.get("imageinfo") or [{}])[0]
+                    label = plain(info.get("extmetadata", {}).get("LicenseShortName", {}).get("value", "")) or "MISSING"
+                    rejected_licenses[label] += 1
                     continue
                 candidates.append(record)
         except (Blocked, ValueError, TypeError, AttributeError) as exc:
@@ -32,6 +37,7 @@ def inspect_rights(web, queries, out):
     report = {"status": state, "provider": "Wikimedia Commons", "queries": queries[:3],
               "inspected_entries": len(seen), "rejected_entries": rejected, "candidate_count": len(candidates),
               "candidates": candidates, "errors": errors, "downloaded_bytes": 0,
+              "rejected_license_names": dict(rejected_licenses),
               "visual_relevance_verified": False,
               "scope": "Metadata permission leads only. No gameplay downloaded, viewed, matched or legally guaranteed."}
     save(out / "footage_readiness.json", report)
@@ -44,6 +50,10 @@ def inspect_rights(web, queries, out):
         lines.append("來源服務未完成回應，目前不能判定有沒有合法素材。")
     else:
         lines.append("這次 Commons 搜尋沒有找到符合目前支援條件的候選，並不代表全網都沒有。若要產片，還需要權利清楚且與故事相符的遊戲錄影；目前不會下載未授權影片或用無關畫面補位。")
+    if rejected_licenses:
+        lines += ["", "未採用檔案的授權標示（也可能受檔案大小、作者欄位等條件影響）：", ""]
+        lines.extend(f"- {name}：{count} 個條目" for name, count in rejected_licenses.items())
+        lines += ["", "目前只支援明確 CC BY、CC0、Public Domain，且有作者／授權證據、單檔 100 MB 以內。CC BY-SA 等其他條款尚未整合，未採用不代表該授權本身無效。"]
     (out / "FOOTAGE_GAPS.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     return report
 

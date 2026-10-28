@@ -29,12 +29,46 @@ def test_unknown_quote_id_is_rejected_not_fuzzy_repaired(tmp_path):
     assert json.loads((tmp_path / 'source_assessments.json').read_text())['S1']['status'] == 'INVALID_SELECTION'
 
 
+def test_extra_real_selections_are_budgeted_but_do_not_qualify_a_story(tmp_path):
+    source = {'id': 'S1', 'url': 'https://fixture.example.org',
+              'text': ''.join(f'Synthetic original sentence number {i} provides only fictional test context. ' for i in range(15))}
+    class Model:
+        def json(self, instruction, payload):
+            if 'quote_candidates' in payload:
+                return {'quote_ids': [q['id'] for q in payload['quote_candidates']]}
+            return {'claims': []}
+    with pytest.raises(Blocked) as exc:
+        fact_check(Model(), {'english_topic': 'synthetic original'}, [source], tmp_path)
+    assert exc.value.code == 'EVIDENCE_INSUFFICIENT'
+    selection = json.loads((tmp_path / 'source_assessments.json').read_text())['S1']
+    assert selection['returned_count'] > selection['selected_count'] == 6
+    records = json.loads((tmp_path / 'research_excerpts.json').read_text())[0]['quote_records']
+    assert all(source['text'][q['start']:q['end']] == q['text'] for q in records)
+
+
+def test_one_format_correction_preserves_exact_evidence_and_still_fails_empty_ledger(tmp_path):
+    class Model:
+        selections = 0
+        def json(self, instruction, payload):
+            if 'quote_candidates' in payload:
+                self.selections += 1
+                return {'quote_ids': ['unknown'] if self.selections == 1 else ['Q1']}
+            return {'claims': []}
+    model = Model()
+    source = {'id': 'S1', 'url': 'https://fixture.example.org', 'text': 'A completely fictional source sentence is used only for this unit test. ' * 5}
+    with pytest.raises(Blocked) as exc:
+        fact_check(model, {'english_topic': 'fictional source'}, [source], tmp_path)
+    assert exc.value.code == 'EVIDENCE_INSUFFICIENT' and model.selections == 2
+    selection = json.loads((tmp_path / 'source_assessments.json').read_text())['S1']
+    assert selection['status'] == 'SELECTED' and selection['correction_calls'] == 1
+
+
 def test_citation_ids_are_resolved_from_source_bytes_and_audit_still_required(tmp_path):
     sources = [{'id': f'S{i}', 'url': f'https://publisher{i}.example.{suffix}/story',
                 'text': f'Publisher {i} reports a completely fictional fixture fact for testing evidence mechanics. ' * 5} for i, suffix in ((1, 'org'), (2, 'net'))]
     class Model:
         def json(self, instruction, payload):
-            if 'Select up to 3' in instruction:
+            if 'quote_candidates' in payload:
                 return {'quote_ids': ['Q1']}
             if 'Build a conservative' in instruction:
                 return {'claims': [{'id': f'C{i}', 'statement': '僅合成測試', 'date': None,

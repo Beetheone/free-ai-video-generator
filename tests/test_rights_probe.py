@@ -34,6 +34,7 @@ def test_restricted_metadata_is_a_gap_not_permission(tmp_path):
     report = inspect_rights(Web(), ["fixture query"], tmp_path)
     assert report["status"] == "NO_SUPPORTED_LICENSED_CANDIDATES"
     assert report["candidate_count"] == 0 and report["rejected_entries"] == 1
+    assert report['rejected_license_names'] == {'CC BY-NC 4.0': 1}
     assert "並不代表全網都沒有" in (tmp_path / "FOOTAGE_GAPS.md").read_text()
 
 

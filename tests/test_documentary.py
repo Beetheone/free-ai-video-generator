@@ -101,7 +101,7 @@ def test_evidence_auditor_can_veto_syndication(evidence, tmp_path):
     class FakeModel:
         calls = 0
         def json(self, instruction, payload):
-            if "Select up to 3" in instruction:
+            if "quote_candidates" in payload:
                 return {"quote_ids": [payload["quote_candidates"][0]["id"]]}
             self.calls += 1
             if self.calls == 1:
