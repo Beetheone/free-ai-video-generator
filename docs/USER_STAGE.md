@@ -7,6 +7,7 @@
 | 檔案 | 白話用途 |
 | --- | --- |
 | `PROGRESS.md` | 這次實際做到哪裡、在哪一步停止、現在拿得到什麼 |
+| `RESEARCH.md` | 通過本次自動審核的白話研究筆記、時間與來源連結；不等於人工查證 |
 | `SCRIPT.md` | 通過腳本審核才會出現的原創繁體中文稿，含逐段主張引用 |
 | `evidence.json` | 通過自動審核的主張、逐字引句、來源與可支持的時間線 |
 | `research.json` | 真正讀到的文章、擷取日期與雜湊；不代表每篇都相關或正確 |
@@ -17,6 +18,8 @@
 
 找到授權中繼資料候選，不等於已取得正確遊戲畫面；還要下載、辨識影格並覆蓋整段旁白。研究與腳本成功也不等於影片完成。
 
+腳本篇幅目前以字數估算，研究階段沒有驗證完整旁白是否真正在 10–15 分鐘內；正式產片必須配音後量測片長。來源本文有下載／保留長度上限，報告保留雜湊與截斷標記，不能聲稱讀過未擷取的內容。
+
 ## 怎麼輸入
 
 目前功能在 `feat/topic-documentary-pipeline` 分支。
@@ -25,7 +28,7 @@
 2. 輸入中文題目。`goal=script` 代表取得研究與腳本；`research` 只到證據包；`movie` 嘗試完整影片，缺素材或不過品質門檻會停止。
 3. 執行結束後下載 Artifacts，先讀 `PROGRESS.md`。
 
-另有輕量的 [One Topic Research and Script](https://github.com/Beetheone/free-ai-video-generator/actions/workflows/one-topic-research.yml)，不安裝配音模型、不渲染影片。新 workflow 合併至預設分支後可手動執行；合併前推送 `config/research-topics.json` 可觸發驗證。使用者不用撰寫搜尋詞、腳本或分鏡。
+另有輕量的 [One Topic Research and Script](https://github.com/Beetheone/free-ai-video-generator/actions/workflows/one-topic-research.yml)，預設 `research` 先驗收研究包，也可選 `script` 繼續嘗試成稿；不安裝配音模型、不渲染影片。新 workflow 合併至預設分支後可手動執行；合併前推送 `config/research-topics.json` 可觸發驗證。使用者不用撰寫搜尋詞、腳本或分鏡。
 
 ## 需要什麼
 

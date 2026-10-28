@@ -9,6 +9,11 @@ on:
         description: '中文遊戲題目；產出研究與腳本，尚不製作影片'
         required: true
         type: string
+      goal:
+        description: 'research：先驗收來源與證據；script：繼續嘗試完整原創稿'
+        type: choice
+        default: research
+        options: [research, script]
 
 permissions:
   contents: read
@@ -44,11 +49,12 @@ jobs:
       - name: Install research dependencies
         if: steps.queue.outputs.active == 'true'
         run: python -m pip install -r requirements-documentary.txt
-      - name: Research and audit original script
+      - name: Run selected research or script milestone
         if: steps.queue.outputs.active == 'true'
         env:
           TOPIC: ${{ inputs.topic }}
           EVENT: ${{ github.event_name }}
+          GOAL: ${{ inputs.goal || 'research' }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY || secrets.GEMINI_API_KEY || secrets.GOOGLE_API_KEY }}
           LLM_BASE_URL: ${{ vars.LLM_BASE_URL || secrets.LLM_BASE_URL }}
           LLM_MODEL: ${{ vars.LLM_MODEL || secrets.LLM_MODEL }}
@@ -56,9 +62,9 @@ jobs:
           PYTHONUNBUFFERED: '1'
         run: |
           if [ "$EVENT" = workflow_dispatch ]; then
-            python topic_pipeline.py --topic "$TOPIC" --stop-after script --out output/research
+            python topic_pipeline.py --topic "$TOPIC" --stop-after "$GOAL" --out output/research
           else
-            python topic_pipeline.py --topics-file config/research-topics.json --stop-after script --out output/research
+            python topic_pipeline.py --topics-file config/research-topics.json --stop-after "$GOAL" --out output/research
           fi
       - name: Inspect footage permission leads independently
         if: always() && steps.queue.outputs.active == 'true'
@@ -73,7 +79,7 @@ jobs:
               data = json.loads(path.read_text(encoding='utf-8'))
               message = json.dumps(data, ensure_ascii=False)
               escaped = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-              level = 'notice' if data['status'] == 'SCRIPT_READY' else 'error'
+              level = 'notice' if data['status'] in ('RESEARCH_READY', 'SCRIPT_READY') else 'error'
               print('::' + level + ' title=Research milestone::' + escaped)
               summary_path = path.with_name('research_summary.json')
               if summary_path.exists():
@@ -96,6 +102,7 @@ jobs:
           path: |
             output/research/**/*.json
             output/research/**/PROGRESS.md
+            output/research/**/RESEARCH.md
             output/research/**/SCRIPT.md
             output/research/**/FOOTAGE_GAPS.md
           if-no-files-found: warn

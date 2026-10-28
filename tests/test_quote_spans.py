@@ -100,3 +100,34 @@ def test_script_must_answer_requested_topic_even_when_coherent(tmp_path):
         write_script(Model(), {'game': 'Synthetic', 'english_topic': 'fictional topic'}, {'claims': [{'id': 'C1'}], 'timeline': []}, 12, tmp_path)
     assert exc.value.code == 'SCRIPT_AUDIT_FAILED'
     assert not (tmp_path / 'script.json').exists()
+
+
+@pytest.mark.parametrize('rejection_stage', ['citation_validation', 'semantic_audit'])
+def test_bad_claim_is_excluded_while_every_retained_claim_passes_original_gates(tmp_path, rejection_stage):
+    sources = [{'id': f'S{i}', 'url': f'https://fixture{i}.example.{suffix}/article',
+                'text': f'Publisher {i} provides synthetic fixture dates 1997 and 1999-01-01 for test mechanics only. ' * 10}
+               for i, suffix in ((1, 'org'), (2, 'net'))]
+    class Model:
+        def json(self, instruction, payload):
+            if 'quote_candidates' in payload:
+                return {'quote_ids': ['Q1']}
+            if 'Build a conservative' in instruction:
+                claims = [{'id': f'C{i}', 'statement': f'合成測試主張{i}，非遊戲事實', 'date': None,
+                           'evidence': [{'source_id': 'S1', 'quote_id': 'Q1'}, {'source_id': 'S2', 'quote_id': 'Q1'}]} for i in range(1, 6)]
+                claims[0]['date'], claims[1]['date'] = 1997, '1999-01-01'
+                if rejection_stage == 'citation_validation':
+                    claims[-1]['evidence'] = claims[-1]['evidence'][:1]
+                return {'claims': claims, 'uncertainties': []}
+            return {'claims': [{'id': c['id'], 'supported': c['id'] != 'C5', 'independent_sources': True,
+                                'reason': 'Explicit fixture review, not real factual verification'} for c in payload['claims']]}
+    ledger = fact_check(Model(), {'english_topic': 'synthetic dates'}, sources, tmp_path)
+    assert {c['id'] for c in ledger['claims']} == {'C1', 'C2', 'C3', 'C4'}
+    rejected = json.loads((tmp_path / 'evidence_rejected_claims.json').read_text())
+    assert rejected[0]['id'] == 'C5' and rejected[0]['stage'] == rejection_stage
+    assert ledger['claims'][0]['date'] == '1997'
+    assert [c['date'] for c in ledger['timeline']] == ['1997', '1999-01-01']
+    for claim in ledger['claims']:
+        assert len(claim['evidence']) == 2
+        for citation in claim['evidence']:
+            source = next(s for s in sources if s['id'] == citation['source_id'])
+            assert citation['quote'] == source['text'][citation['source_start']:citation['source_end']]

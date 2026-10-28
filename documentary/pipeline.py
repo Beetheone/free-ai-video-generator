@@ -151,7 +151,9 @@ def run_pipeline(topic, minutes, out, engine="edge", voice="zh-TW-YunJheNeural",
         counts = {}
         for filename, field, label in (("research.json", "sources", "retrieved_source_bodies"),
                                         ("research_excerpts.json", None, "sources_with_relevant_exact_quotes"),
-                                        ("evidence_draft.json", "claims", "candidate_claims")):
+                                        ("evidence_draft.json", "claims", "candidate_claims"),
+                                        ("evidence.json", "claims", "audited_and_retained_claims"),
+                                        ("evidence_rejected_claims.json", None, "excluded_candidate_claims")):
             try:
                 data = json.loads((out / filename).read_text("utf-8"))
                 value = data.get(field) if field and isinstance(data, dict) else data if field is None else None

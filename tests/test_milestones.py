@@ -38,6 +38,9 @@ def test_milestone_never_runs_production_or_claims_finished_film(tmp_path, monke
     progress = (out / "PROGRESS.md").read_text()
     assert "尚無通過品質檢查的紀錄片 MP4" in progress
     assert "raw-source-must-not-appear" not in progress
+    research_note = (out / "RESEARCH.md").read_text()
+    assert "僅合成測試" in research_note
+    assert "raw-source-must-not-appear" not in research_note
     assert (out / "SCRIPT.md").is_file() == (milestone == "script")
     assert not list(out.rglob("*.mp4"))
 

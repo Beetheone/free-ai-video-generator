@@ -59,6 +59,20 @@ def write_progress(out, report):
         lines.append(f"- {label}：{state}")
     if report.get("blocker"):
         lines += ["", "## 停止原因", "", report["blocker"]["code"], "", report["blocker"]["detail"]]
+    ledger = read_json(out / "evidence.json", {})
+    if "evidence_audit" in done:
+        lines += ["", f"本次自動審核保留 {len(ledger.get('claims', []))} 項主張，另排除 {len(ledger.get('excluded_claim_ids', []))} 個候選項。",
+                  "可下載 RESEARCH.md 閱讀研究筆記與來源；排除項目可能是缺少互證或不符合引用要求，不代表已證明其為假。"]
+        research_lines = ["# " + report["topic"], "", "這是通過本次自動引句、來源及模型審核的研究筆記，非人工事實查證或完整影片。", ""]
+        for claim in ledger.get("claims", []):
+            ids = list(dict.fromkeys(e["source_id"] for e in claim.get("evidence", [])))
+            date = f"；時間：{claim['date']}" if claim.get('date') else ""
+            research_lines += [f"## {claim['id']}", "", claim["statement"], "", "來源：" + "、".join(ids) + date, ""]
+        research_lines += ["## 來源連結", ""]
+        cited = {e["source_id"] for c in ledger.get("claims", []) for e in c.get("evidence", [])}
+        research_lines.extend(f"- {s.get('id')}：{s.get('title', '')}\n  {s.get('url', '')}" for s in sources if s.get('id') in cited)
+        research_lines += ["", "尚未確認的內容與排除原因另存於 evidence.json 及 evidence_rejected_claims.json；不會自動當成腳本事實。"]
+        (out / "RESEARCH.md").write_text("\n".join(research_lines) + "\n", encoding="utf-8")
     lines += ["", "## 已讀取的來源", ""]
     lines.extend(f"- {s.get('id')}：{s.get('title', '')}\n  {s.get('url', '')}" for s in sources if isinstance(s, dict))
     if not sources:
@@ -67,7 +81,7 @@ def write_progress(out, report):
     if "original_script" in done:
         lines.append("可下載 SCRIPT.md：通過本次自動審核的原創腳本，含逐段主張引用。它尚不是影片。")
     elif "evidence_audit" in done:
-        lines.append("可下載 evidence.json：通過本次自動審核的主張、引用與時間線；尚無完整腳本。")
+        lines.append("可下載 RESEARCH.md 與 evidence.json：通過本次自動審核的研究筆記、引用與時間線；尚無完整腳本。")
     else:
         lines.append("可下載搜尋、來源與證據缺口紀錄；目前不能把它當作已查證腳本。")
     if report["status"] != "COMPLETE_AUTOMATED_CHECKS":

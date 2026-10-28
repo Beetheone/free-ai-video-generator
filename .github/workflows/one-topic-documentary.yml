@@ -171,6 +171,7 @@ jobs:
             output/documentaries/**/thumbnail.jpg
             output/documentaries/**/ATTRIBUTION.md
             output/documentaries/**/PROGRESS.md
+            output/documentaries/**/RESEARCH.md
             output/documentaries/**/SCRIPT.md
             output/documentaries/**/FOOTAGE_GAPS.md
             output/documentaries/**/*.json
