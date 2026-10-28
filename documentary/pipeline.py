@@ -16,14 +16,15 @@ from .doctor import recovery
 from .footage import Library
 from .production import FONT, inspect_media, render, synthesize, thumbnail
 from .research import fact_check, plan_topic, research, write_script
+from .reporting import write_progress
 
 
-def run_pipeline(topic, minutes, out, engine="edge", voice="zh-TW-YunJheNeural", *, model=None, web=None):
+def run_pipeline(topic, minutes, out, engine="edge", voice="zh-TW-YunJheNeural", *, model=None, web=None, stop_after="movie"):
     out = Path(out)
     # Never accept a stale successful MP4/report from a previous job as this job's output.
     out.mkdir(parents=True, exist_ok=False)
     stage = "preflight"
-    report = {"topic": topic, "target_minutes": minutes, "tts_engine": engine, "run_id": out.name,
+    report = {"topic": topic, "target_minutes": minutes, "tts_engine": engine, "requested_output": stop_after, "run_id": out.name,
               "started_at": datetime.now(timezone.utc).isoformat(), "status": "RUNNING", "current_stage": stage, "completed_stages": []}
     save(out / "qa_report.json", report)
 
@@ -49,9 +50,9 @@ def run_pipeline(topic, minutes, out, engine="edge", voice="zh-TW-YunJheNeural",
 
     try:
         model, web = model or Model(), web or Web()
-        if not topic.strip() or len(topic) > 500 or minutes not in (10,12,15):
+        if not topic.strip() or len(topic) > 500 or minutes not in (10,12,15) or stop_after not in ("research", "script", "movie"):
             raise Blocked("INPUT_INVALID", "Topic must be 1–500 characters and runtime 10, 12 or 15 minutes")
-        if not all(shutil.which(p) for p in ("ffmpeg", "ffprobe")) or not Path(FONT).is_file():
+        if stop_after == "movie" and (not all(shutil.which(p) for p in ("ffmpeg", "ffprobe")) or not Path(FONT).is_file()):
             raise Blocked("RUNTIME_MISSING", "Need ffmpeg, ffprobe and fonts-noto-cjk")
         enter("bilingual_topic_expansion")
         plan = plan_topic(model, topic)
@@ -63,9 +64,15 @@ def run_pipeline(topic, minutes, out, engine="edge", voice="zh-TW-YunJheNeural",
         enter("evidence_audit")
         ledger = fact_check(model, plan, sources, out)
         complete()
+        if stop_after == "research":
+            report["status"] = "RESEARCH_READY"
+            return report
         enter("original_script")
         script = write_script(model, plan, ledger, minutes, out)
         complete()
+        if stop_after == "script":
+            report["status"] = "SCRIPT_READY"
+            return report
         enter("licensed_footage_discovery")
         library = Library(web, model, out)
         library.search(plan["footage_queries"])
@@ -144,6 +151,7 @@ def run_pipeline(topic, minutes, out, engine="edge", voice="zh-TW-YunJheNeural",
                       model_calls=getattr(model, "calls", 0), model_usage=getattr(model, "usage", {}),
                       model_usage_unavailable_calls=getattr(model, "usage_unavailable_calls", 0))
         save(out / "qa_report.json", report)
+        write_progress(out, report)
     return report
 
 
@@ -156,6 +164,8 @@ def _main(argv=None):
     p.add_argument("--out", type=Path, default=Path("output/documentaries"))
     p.add_argument("--tts", choices=("edge", "kokoro"), default="edge")
     p.add_argument("--voice", default="zh-TW-YunJheNeural")
+    p.add_argument("--stop-after", choices=("research", "script", "movie"), default="movie",
+                   help="Explicit milestone; research/script success never means a finished film")
     args = p.parse_args(argv)
     topics = [args.topic] if args.topic is not None else json.loads(args.topics_file.read_text("utf-8"))
     if not isinstance(topics, list) or not 1 <= len(topics) <= 3 or any(not isinstance(t, str) or not t.strip() or len(t) > 500 for t in topics):
@@ -165,12 +175,13 @@ def _main(argv=None):
     for topic in topics:
         slug = re.sub(r"[^\w-]", "_", topic)[:30]
         name = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S") + "-" + slug + "-" + uuid.uuid4().hex[:8]
-        report = run_pipeline(topic, args.minutes, args.out / name, args.tts, args.voice)
+        report = run_pipeline(topic, args.minutes, args.out / name, args.tts, args.voice, stop_after=args.stop_after)
         reports.append(report)
         print(json.dumps(report, ensure_ascii=False), flush=True)
         if report["status"] == "CANCELLED":
             return 130
-    return 0 if all(r["status"] == "COMPLETE_AUTOMATED_CHECKS" for r in reports) else 2
+    expected = {"research": "RESEARCH_READY", "script": "SCRIPT_READY", "movie": "COMPLETE_AUTOMATED_CHECKS"}[args.stop_after]
+    return 0 if all(r["status"] == expected for r in reports) else 2
 
 
 def main(argv=None):

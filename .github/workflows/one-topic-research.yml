@@ -1,0 +1,92 @@
+name: One Topic Research and Script
+
+on:
+  push:
+    paths: ['config/research-topics.json']
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: '中文遊戲題目；產出研究與腳本，尚不製作影片'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: topic-research-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements-documentary.txt
+      - name: Check research queue
+        id: queue
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          python - <<'PY'
+          import json, os
+          topics = json.load(open('config/research-topics.json', encoding='utf-8'))
+          assert isinstance(topics, list) and len(topics) <= 3
+          assert all(isinstance(t, str) and t.strip() and len(t) <= 500 for t in topics)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write('active=' + str(os.environ['EVENT'] == 'workflow_dispatch' or bool(topics)).lower() + '\n')
+          PY
+      - name: Install research dependencies
+        if: steps.queue.outputs.active == 'true'
+        run: python -m pip install -r requirements-documentary.txt
+      - name: Research and audit original script
+        if: steps.queue.outputs.active == 'true'
+        env:
+          TOPIC: ${{ inputs.topic }}
+          EVENT: ${{ github.event_name }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY || secrets.GEMINI_API_KEY || secrets.GOOGLE_API_KEY }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL || secrets.LLM_BASE_URL }}
+          LLM_MODEL: ${{ vars.LLM_MODEL || secrets.LLM_MODEL }}
+          LLM_MAX_CALLS: '100'
+          PYTHONUNBUFFERED: '1'
+        run: |
+          if [ "$EVENT" = workflow_dispatch ]; then
+            python topic_pipeline.py --topic "$TOPIC" --stop-after script --out output/research
+          else
+            python topic_pipeline.py --topics-file config/research-topics.json --stop-after script --out output/research
+          fi
+      - name: Publish research milestone and safe source diagnostics
+        if: always() && steps.queue.outputs.active == 'true'
+        run: |
+          python - <<'PY'
+          import html, json, os
+          from pathlib import Path
+          for path in Path('output/research').glob('*/qa_report.json'):
+              data = json.loads(path.read_text(encoding='utf-8'))
+              message = json.dumps(data, ensure_ascii=False)
+              escaped = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              level = 'notice' if data['status'] == 'SCRIPT_READY' else 'error'
+              print('::' + level + ' title=Research milestone::' + escaped)
+              summary_path = path.with_name('research_summary.json')
+              if summary_path.exists():
+                  summary = json.loads(summary_path.read_text(encoding='utf-8'))
+                  message = json.dumps(summary, ensure_ascii=False).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                  print('::notice title=Retrieved sources and relevant excerpts::' + message)
+              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as f:
+                  f.write('<pre>' + html.escape(json.dumps(data, ensure_ascii=False, indent=2)) + '</pre>\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.queue.outputs.active == 'true'
+        with:
+          name: topic-research-${{ github.run_id }}
+          path: |
+            output/research/**/*.json
+            output/research/**/PROGRESS.md
+            output/research/**/SCRIPT.md
+          if-no-files-found: warn
+          retention-days: 7
