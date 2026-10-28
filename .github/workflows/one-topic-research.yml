@@ -83,7 +83,7 @@ jobs:
               rights_path = path.with_name('footage_readiness.json')
               if rights_path.exists():
                   rights = json.loads(rights_path.read_text(encoding='utf-8'))
-                  public = {k: rights[k] for k in ('status', 'inspected_entries', 'candidate_count', 'rejected_entries', 'rejected_license_names', 'visual_relevance_verified')}
+                  public = {k: rights[k] for k in ('status', 'inspected_entries', 'candidate_count', 'rejected_entries', 'rejected_license_names', 'rejection_reasons', 'visual_relevance_verified')}
                   message = json.dumps(public).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
                   print('::notice title=Footage permissions, not visual verification::' + message)
               with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as f:

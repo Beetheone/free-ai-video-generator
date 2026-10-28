@@ -11,6 +11,7 @@ from .reporting import read_json
 def inspect_rights(web, queries, out):
     candidates, seen, errors, rejected = [], set(), [], 0
     rejected_licenses = Counter()
+    rejection_reasons = Counter()
     for query in queries[:3]:
         try:
             data = web.json(API, {"action": "query", "format": "json", "generator": "search",
@@ -29,6 +30,19 @@ def inspect_rights(web, queries, out):
                     info = (page.get("imageinfo") or [{}])[0]
                     label = plain(info.get("extmetadata", {}).get("LicenseShortName", {}).get("value", "")) or "MISSING"
                     rejected_licenses[label] += 1
+                    url = info.get('url', '').lower()
+                    size = info.get('size', 0)
+                    if not url.endswith(('.mp4', '.webm', '.ogv')):
+                        reason = 'UNSUPPORTED_VIDEO_FORMAT'
+                    elif not isinstance(size, int) or not 10000 <= size <= 100_000_000:
+                        reason = 'FILE_SIZE_BUDGET'
+                    elif plain(info.get('extmetadata', {}).get('Restrictions', {}).get('value', '')):
+                        reason = 'RESTRICTIONS_PRESENT'
+                    elif not plain(info.get('extmetadata', {}).get('Artist', {}).get('value', '')):
+                        reason = 'CREATOR_MISSING'
+                    else:
+                        reason = 'LICENSE_OR_PROVENANCE_UNSUPPORTED'
+                    rejection_reasons[reason] += 1
                     continue
                 candidates.append(record)
         except (Blocked, ValueError, TypeError, AttributeError) as exc:
@@ -38,6 +52,7 @@ def inspect_rights(web, queries, out):
               "inspected_entries": len(seen), "rejected_entries": rejected, "candidate_count": len(candidates),
               "candidates": candidates, "errors": errors, "downloaded_bytes": 0,
               "rejected_license_names": dict(rejected_licenses),
+              "rejection_reasons": dict(rejection_reasons),
               "visual_relevance_verified": False,
               "scope": "Metadata permission leads only. No gameplay downloaded, viewed, matched or legally guaranteed."}
     save(out / "footage_readiness.json", report)
@@ -54,6 +69,12 @@ def inspect_rights(web, queries, out):
         lines += ["", "未採用檔案的授權標示（也可能受檔案大小、作者欄位等條件影響）：", ""]
         lines.extend(f"- {name}：{count} 個條目" for name, count in rejected_licenses.items())
         lines += ["", "目前只支援明確 CC BY、CC0、Public Domain，且有作者／授權證據、單檔 100 MB 以內。CC BY-SA 等其他條款尚未整合，未採用不代表該授權本身無效。"]
+    if rejection_reasons:
+        labels = {'UNSUPPORTED_VIDEO_FORMAT': '不是目前支援的影片格式', 'FILE_SIZE_BUDGET': '檔案超過目前大小限制或過小',
+                  'RESTRICTIONS_PRESENT': '有額外使用限制', 'CREATOR_MISSING': '缺少作者資料',
+                  'LICENSE_OR_PROVENANCE_UNSUPPORTED': '授權或來源中繼資料不符合目前支援條件'}
+        lines += ["", "未採用原因：", ""]
+        lines.extend(f"- {labels[k]}：{v} 個條目" for k, v in rejection_reasons.items())
     (out / "FOOTAGE_GAPS.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     return report
 
