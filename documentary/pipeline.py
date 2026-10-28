@@ -1,6 +1,7 @@
 """Topic-only controller. A failed gate always has a report and nonzero exit code."""
 import argparse
 import json
+import os
 import re
 import shutil
 import signal
@@ -22,7 +23,7 @@ def run_pipeline(topic, minutes, out, engine="edge", voice="zh-TW-YunJheNeural",
     # Never accept a stale successful MP4/report from a previous job as this job's output.
     out.mkdir(parents=True, exist_ok=False)
     stage = "preflight"
-    report = {"topic": topic, "target_minutes": minutes, "run_id": out.name,
+    report = {"topic": topic, "target_minutes": minutes, "tts_engine": engine, "run_id": out.name,
               "started_at": datetime.now(timezone.utc).isoformat(), "status": "RUNNING", "current_stage": stage, "completed_stages": []}
     save(out / "qa_report.json", report)
 
@@ -32,6 +33,10 @@ def run_pipeline(topic, minutes, out, engine="edge", voice="zh-TW-YunJheNeural",
         report.update(current_stage=name, updated_at=datetime.now(timezone.utc).isoformat())
         report.pop("progress", None)
         save(out / "qa_report.json", report)
+        if os.getenv("GITHUB_ACTIONS") == "true":
+            # Stage names are fixed application identifiers, never topic/source
+            # text. Public annotations expose progress without secret logs.
+            print(f"::notice title=Documentary stage::{name}", flush=True)
 
     def complete():
         report["completed_stages"].append(stage)
@@ -121,6 +126,20 @@ def run_pipeline(topic, minutes, out, engine="edge", voice="zh-TW-YunJheNeural",
     finally:
         if report.get("blocker"):
             report["next_actions"] = recovery(report["blocker"]["code"])
+        # Only counts are included in public diagnostics; source bodies, model
+        # prose and provider responses remain in their own artifacts.
+        counts = {}
+        for filename, field, label in (("research.json", "sources", "retrieved_source_bodies"),
+                                        ("research_excerpts.json", None, "sources_with_relevant_exact_quotes"),
+                                        ("evidence_draft.json", "claims", "candidate_claims")):
+            try:
+                data = json.loads((out / filename).read_text("utf-8"))
+                value = data.get(field) if field and isinstance(data, dict) else data if field is None else None
+                counts[label] = len(value) if isinstance(value, list) else None
+            except (OSError, ValueError):
+                continue
+        if counts:
+            report["diagnostics"] = counts
         report.update(finished_at=datetime.now(timezone.utc).isoformat(),
                       model_calls=getattr(model, "calls", 0), model_usage=getattr(model, "usage", {}),
                       model_usage_unavailable_calls=getattr(model, "usage_unavailable_calls", 0))

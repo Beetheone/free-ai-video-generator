@@ -26,6 +26,16 @@ Codex 雲端仍是舊 runtime：無模型金鑰、沒有 Gemini／研究／配�
 
 另新增獨立 Kokoro CPU 短句實測，重用現有 `kokoro_voice.py` 與正式旁白／字幕檢查；不再重複呼叫 Gemini。Kokoro 是普通話替代，不保證台灣口音；需產生實際 WAV、完整解碼並驗證字幕，仍須聆聽自然度。
 
+**Kokoro 實際語音已通過**：[d0f7c20，2 分 12 秒](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40611170577)。CPU 模型 `hexgrad/Kokoro-82M-v1.1-zh`、聲音 `zf_094` 產出 **9.625 秒 WAV、2 段繁中字幕**；完整解碼與時間／讀速門檻通過。該 run 的 `kokoro-voice-40611170577` artifact（458 KB）提供可聆聽樣本、SRT、報告及依賴紀錄。這是模型實際合成，不是正弦波或示範音效；自然度、台灣口音與長片節奏尚未驗收。
+
+`requirements-kokoro-cpu.txt` 亦在開發機真正安裝成功：torch **2.14.1+cpu**、kokoro／misaki **0.9.4**、transformers **4.57.6**、spaCy **3.8.18**、spacy-curated-transformers **0.3.1**。`pip check` 無衝突，KPipeline／中文前端實際載入，CUDA 不可用且未安裝 GPU 執行依賴；安裝後 **89 passed in 15.03s**。同版本 [Python 3.11 CI](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40611170538) **Success**。曾寫入不存在的 spaCy 套件版本範圍，已由真正依賴解析抓到並修正，沒有將該失敗當成安裝成功。
+
+Actions 產片預設改為已實測的 Kokoro CPU，Edge 功能保留；正式流程使用相同 CPU 需求檔及 `pip check`。使用者無須再次設定 Gemini 金鑰。接著用原寶可夢題材實跑研究／腳本／合法素材門檻；沒有取得成品前仍不宣稱完整紀錄片通過。
+
+[Gemini＋Kokoro 正式寶可夢題材，b171b7d](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40611643624)，**3 分 27 秒後退出 2**：動態雙語查詢與文章本文擷取階段通過，停在 `evidence_audit` 的 **`EVIDENCE_INSUFFICIENT`**，候選主張未滿足 4–50 項的結構／數量門檻。該通用訊息沒有區分非陣列、過少或過多，不能據此虛構精確主張數；因此加上後續可觀察的候選數量、相關逐字引句來源數與擷取本文數，以及固定階段的公開進度註記。驗收門檻保持原樣，未強迫模型補足故事。
+
+此 run 上傳 `game-documentary-40611643624` 診斷 artifact（24.7 KB），含研究、逐字引句與候選證據等已完成階段資料；沒有原創腳本、授權遊戲影片、完整旁白或 MP4。這台雲端的 GitHub API 網路仍未套用，無法下載需登入的 artifact 深入診斷；不能將公開摘要冒充逐份閱讀完整來源。已將題材清單清空以停止定時重試，待能檢視實際來源與證據缺口後再改善研究。對應 [89 項 Python 3.11 CI](https://github.com/Beetheone/free-ai-video-generator/actions/runs/40611643608) **Success**，52 秒。
+
 執行日期：2026-10-28（台灣）。起始版本：`14c153c48fcaab392fe616cbddff52e5c54bf264`。開發機：Linux、Python 3.12.14、FFmpeg／FFprobe、Noto CJK，5 個可見 CPU，32 GiB 可用記憶體。Actions 設定為 Python 3.11、CPU 兩執行緒。以下保留第一階段紀錄，後續 GitHub runner 實跑結果見文末。
 
 ## 已通過

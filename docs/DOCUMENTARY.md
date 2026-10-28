@@ -51,13 +51,13 @@
 ```bash
 cd /workspace/free-ai-video-generator
 python -m venv /workspace/.venvs/game-doc
-/workspace/.venvs/game-doc/bin/pip install -r requirements-documentary.txt
-/workspace/.venvs/game-doc/bin/python -m documentary.doctor --out output/environment-diagnosis.json
+/workspace/.venvs/game-doc/bin/pip install -r requirements-kokoro-cpu.txt
+/workspace/.venvs/game-doc/bin/python -m documentary.doctor --tts kokoro --out output/environment-diagnosis.json
 /workspace/.venvs/game-doc/bin/python -m pytest -q
-/workspace/.venvs/game-doc/bin/python topic_pipeline.py --topic '寶可夢紅綠版，推卡車抓夢幻的都市傳說' --minutes 12
+/workspace/.venvs/game-doc/bin/python topic_pipeline.py --topic '寶可夢紅綠版，推卡車抓夢幻的都市傳說' --minutes 12 --tts kokoro
 ```
 
-系統套件：`ffmpeg`、`ffprobe`、`fonts-noto-cjk`。選 Kokoro 需另外安裝 CPU PyTorch、`kokoro>=0.9.4,<1`、`misaki[zh]>=0.8.2,<1`、soundfile、espeak-ng，並允許 Hugging Face 模型下載。既有 Kokoro 將繁體轉簡體供模型發音，字幕仍用原繁體；它是普通話，不保證台灣口音。逐短句配音可能影響自然度，未實際聆聽驗收前不得稱自然旁白已通過。
+系統套件：`ffmpeg`、`ffprobe`、`fonts-noto-cjk`。選 Kokoro 使用已實測的 `python -m pip install -r requirements-kokoro-cpu.txt` 與 `python -m pip check`；包含 CPU 專用 PyTorch 及相容的 Kokoro／Misaki／Transformers／spaCy。另需 espeak-ng，並允許 Hugging Face 模型下載。雲端模型快取可設 `HF_HOME=/workspace/free-ai-video-generator/.documentary_cache/huggingface`。既有 Kokoro 將繁體轉簡體供模型發音，字幕仍用原繁體；它是普通話，不保證台灣口音。逐短句配音可能影響自然度，未實際聆聽驗收前不得稱自然旁白已通過。
 
 每次執行建立新目錄，拒絕沿用既存成品。測試合成影片只是編碼與字幕驗證，不可當遊戲畫面。未通過的素材留在開發機供診斷，不會成為 Actions 的 MP4 成品。
 
@@ -71,7 +71,7 @@ Edge 配音先解碼為 PCM 再測量片長，避免 MP3 容器補樣影響時�
 
 ## 實際驗證與目前阻礙
 
-詳見 [VALIDATION.md](VALIDATION.md)。Codex 開發機的真實中文入口曾停在 `MODEL_NETWORK`；搜尋、Commons 與 Edge TTS 分別得到代理拒絕。另在 GitHub runner 實跑後，確認模型回應不是有效 JSON API envelope，並查到官方服務退役資訊，已移除該預設。沒有真正完成寶可夢研究、腳本、配音或合法遊戲素材下載，也沒有 10–15 分鐘成品。新提供者仍需安全設定金鑰、端點與模型，模型／授權／自然旁白與語義匹配的真實品質尚未驗收。
+詳見 [VALIDATION.md](VALIDATION.md)。Codex 開發機仍受目前未套用草稿的網路／憑證限制。GitHub runner 已以使用者的 Gemini 金鑰實際通過文字＋視覺推論，搜尋與 Commons API 可讀，Kokoro CPU 真正產出 9.625 秒語音及字幕並完整解碼。Edge 更新後仍無音訊。這些是個別服務驗證，寶可夢可信研究、原創腳本、合法畫面、語義匹配、自然旁白與完整 10–15 分鐘影片仍需正式流程驗收；沒有以測試素材代替成品。
 
 雲端網域草稿已保存，需在環境設定檢閱並儲存、發布後重新測試。搜尋回傳的文章可能需要額外逐一開放其原站網域；錯誤清單會保留 URL。GitHub Actions runner 的連線條件與這台開發機不同，仍須實跑驗證。不要為通過測試而關閉 TLS／憑證驗證。
 

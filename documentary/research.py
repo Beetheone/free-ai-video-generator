@@ -85,7 +85,8 @@ def publisher(url):
 def validate_claims(claims, sources):
     indexed = {s["id"]: s for s in sources}
     if not isinstance(claims, list) or not 4 <= len(claims) <= 50:
-        raise Blocked("EVIDENCE_INSUFFICIENT", "Need 4–50 supported claims, not a fabricated long story")
+        count = len(claims) if isinstance(claims, list) else "non-list response"
+        raise Blocked("EVIDENCE_INSUFFICIENT", f"Need 4–50 supported claims; received {count}. Inspect evidence_draft.json and research_excerpts.json; no fabricated story fallback")
     ids = set()
     for c in claims:
         if not isinstance(c, dict) or not isinstance(c.get("id"), str) or c["id"] in ids or not isinstance(c.get("statement"), str) or not c["statement"].strip():
