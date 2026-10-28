@@ -116,3 +116,27 @@ def passages(text, plan, budget=6000):
         else:
             merged.append((a, b))
     return [{"start": a, "end": b, "text": text[a:b]} for a, b in merged]
+
+
+def quote_candidates(text, plan):
+    """Identify exact source spans; the model selects IDs instead of copying."""
+    import pysbd
+    language = "zh" if len(re.findall(r"[\u3400-\u9fff]", text)) > len(text) * 0.2 else "en"
+    segmenter = pysbd.Segmenter(language=language, clean=False, char_span=True)
+    records, seen, total = [], set(), 0
+    for window in passages(text, plan):
+        for span in segmenter.segment(window["text"]):
+            a, b = window["start"] + span.start, window["start"] + span.end
+            for begin in range(a, b, 220):
+                end = min(begin+220, b)
+                if end-begin < 24:
+                    end = min(begin+120, window["end"])
+                quote = text[begin:end]
+                if not 24 <= len(quote.strip()) <= 250 or (begin, end) in seen:
+                    continue
+                if len(records) >= 60 or total + len(quote) > 6000:
+                    return records
+                seen.add((begin, end))
+                records.append({"id": f"Q{len(records)+1}", "start": begin, "end": end, "text": quote})
+                total += len(quote)
+    return records

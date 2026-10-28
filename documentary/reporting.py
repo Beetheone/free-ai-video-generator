@@ -33,11 +33,15 @@ def write_progress(out, report):
     if not isinstance(research, dict):
         research = {}
     excerpts = read_json(out / "research_excerpts.json", [])
+    assessments = read_json(out / "source_assessments.json", {})
+    if not isinstance(assessments, dict):
+        assessments = {}
     sources = research.get("sources", []) if isinstance(research, dict) else []
     excerpt_counts = {s["id"]: len(s.get("quotes", [])) or int(bool(s.get("text")))
                       for s in excerpts if isinstance(s, dict) and "id" in s} if isinstance(excerpts, list) else {}
     summary = [{"id": s.get("id"), "hostname": urlsplit(s.get("url", "")).hostname, "title": s.get("title", "")[:120],
                 "characters": len(s.get("text", "")), "engine": s.get("discovery_engine", "unknown"),
+                "selection_status": assessments.get(s.get("id"), {}).get("status", "NOT_REVIEWED"),
                 "has_relevant_exact_quotes": bool(excerpt_counts.get(s.get("id")))}
                for s in sources if isinstance(s, dict)]
     save(out / "research_summary.json", {"sources": summary, "diagnostics": report.get("diagnostics", {}),

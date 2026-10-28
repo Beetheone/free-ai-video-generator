@@ -58,7 +58,7 @@ def test_empty_excerpt_cache_does_not_repeat_inference_or_pass_claim_gate(tmp_pa
         def json(self, instruction, payload):
             if "Select up to 3" in instruction:
                 self.selections += 1
-                return {"quotes": []}
+                return {"quote_ids": []}
             return {"claims": []}
     model, cache = Model(), {}
     sources = [{"id": f"S{i}", "text": f"Fictional unrelated body {i}. " * 8,

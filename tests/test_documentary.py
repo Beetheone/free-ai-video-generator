@@ -102,9 +102,10 @@ def test_evidence_auditor_can_veto_syndication(evidence, tmp_path):
         calls = 0
         def json(self, instruction, payload):
             if "Select up to 3" in instruction:
-                return {"quotes": [payload["source"]["text"]]}
+                return {"quote_ids": [payload["quote_candidates"][0]["id"]]}
             self.calls += 1
-            if self.calls == 1: return {"claims": claims, "uncertainties": []}
+            if self.calls == 1:
+                return {"claims": [{**c, "evidence": [{"source_id": e["source_id"], "quote_id": "Q1"} for e in c["evidence"]]} for c in claims], "uncertainties": []}
             return {"claims": [{"id": c["id"], "supported": True, "independent_sources": False, "reason": "same syndicated fixture"} for c in claims]}
     with pytest.raises(Blocked) as exc:
         fact_check(FakeModel(), {"english_topic": "synthetic fixture"}, sources, tmp_path)
