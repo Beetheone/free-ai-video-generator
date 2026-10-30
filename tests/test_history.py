@@ -362,3 +362,35 @@ def test_youtube_resumable_flow(tmp_path, monkeypatch):
             return Resp(200, {"id": "abc123"})
     outcome = youtube.upload(video, "t", "d", ["x"], thumb, session=Session())
     assert outcome["video_id"] == "abc123" and outcome["privacy"] == "private" and outcome["thumbnail"].startswith("not set")
+
+
+# ------------------------------------------------------------------ voice probe
+
+def test_voice_probe_reports_http_status_without_leaking_urls(monkeypatch):
+    import sys
+    import types
+    from documentary import voice_probe
+
+    class Communicate:
+        def __init__(self, *a, **kw):
+            pass
+        async def stream(self):
+            raise RuntimeError("403, message='Invalid response status', url='wss://secret.example/?Token=abc'")
+            yield
+    monkeypatch.setitem(sys.modules, "edge_tts", types.SimpleNamespace(Communicate=Communicate))
+    ok, detail = voice_probe.probe(timeout=5)
+    assert ok is False and detail == "RuntimeError HTTP 403" and "secret" not in detail
+
+
+def test_voice_probe_success(monkeypatch):
+    import sys
+    import types
+    from documentary import voice_probe
+
+    class Communicate:
+        def __init__(self, *a, **kw):
+            pass
+        async def stream(self):
+            yield {"type": "audio", "data": b"x"}
+    monkeypatch.setitem(sys.modules, "edge_tts", types.SimpleNamespace(Communicate=Communicate))
+    assert voice_probe.probe(timeout=5) == (True, "audio received")

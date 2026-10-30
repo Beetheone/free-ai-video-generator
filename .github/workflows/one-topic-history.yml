@@ -78,28 +78,19 @@ jobs:
           sudo apt-get install -y ffmpeg fonts-noto-cjk
           python -m pip install -r requirements-documentary.txt
       - name: Probe Edge voice
-        id: edge
+        id: edge1
         if: steps.queue.outputs.active == 'true' && (inputs.goal || 'movie') == 'movie'
         continue-on-error: true
+        run: python -m documentary.voice_probe
+      - name: Retry Edge voice with the newest edge-tts (Microsoft changes its handshake often)
+        id: edge2
+        if: steps.queue.outputs.active == 'true' && (inputs.goal || 'movie') == 'movie' && steps.edge1.outputs.ok != 'true'
+        continue-on-error: true
         run: |
-          python - <<'PY'
-          import asyncio, os
-          import edge_tts
-          async def main():
-              got = False
-              async for msg in edge_tts.Communicate("測試", voice="zh-TW-YunJheNeural").stream():
-                  got = got or msg["type"] == "audio"
-              return got
-          ok = False
-          try:
-              ok = asyncio.run(main())
-          except Exception as exc:
-              print('Edge voice unavailable:', type(exc).__name__)
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write('ok=' + str(ok).lower() + '\n')
-          PY
+          python -m pip install --upgrade edge-tts
+          python -m documentary.voice_probe
       - name: Install Kokoro CPU voice (selected, or fallback when Edge is unavailable)
-        if: steps.queue.outputs.active == 'true' && (inputs.goal || 'movie') == 'movie' && ((inputs.tts || 'edge') == 'kokoro' || steps.edge.outputs.ok != 'true')
+        if: steps.queue.outputs.active == 'true' && (inputs.goal || 'movie') == 'movie' && ((inputs.tts || 'edge') == 'kokoro' || (steps.edge1.outputs.ok != 'true' && steps.edge2.outputs.ok != 'true'))
         run: |
           sudo apt-get install -y espeak-ng
           python -m pip install -r requirements-kokoro-cpu.txt
@@ -117,7 +108,7 @@ jobs:
           LLM_MODEL: ${{ vars.LLM_MODEL || secrets.LLM_MODEL }}
           LLM_MAX_CALLS: '320'
         run: |
-          if [ "$TTS" = edge ] && [ "${{ steps.edge.outputs.ok }}" != "true" ] && [ "$GOAL" = movie ]; then
+          if [ "$TTS" = edge ] && [ "$GOAL" = movie ] && [ "${{ steps.edge1.outputs.ok }}" != "true" ] && [ "${{ steps.edge2.outputs.ok }}" != "true" ]; then
             echo "::notice title=Voice::Edge voice unreachable, using Kokoro"
             TTS=kokoro
           fi
