@@ -356,22 +356,31 @@ def validate_script(script, ledger, minutes):
     return script
 
 
-def write_script(model, plan, ledger, minutes, out):
+GAME_SECTIONS = ["懸念與事件背景", "起源與早期紀錄", "事件發展與玩家探索", "證據與矛盾", "轉折與技術解釋", "後續影響與結論"]
+GAME_INSTRUCTION = (
+    'Write ONE chapter of an ORIGINAL Traditional Chinese gaming documentary. '
+    'Use ONLY supplied supported claims; qualify rumors. Do not copy source prose or imitate an existing creator. '
+    'No invented dialogue or dates. Return {"scenes":[{"narration":str,"claim_ids":["C1"],'
+    '"visual_need":"precise English gameplay event visible on screen", "footage_queries":["English exact game and event"]}]}. '
+    'Each scene 40–120 Chinese characters. Total chapter approximately target_characters; '
+    'roughly 6–10 scenes. No padding, repeated hooks or commentary unsupported by claims. '
+    'If evidence cannot sustain the requested length, return fewer scenes rather than invent.')
+
+
+def write_script(model, plan, ledger, minutes, out, *, sections=None, instruction=None):
     scenes = []
-    sections = ["懸念與事件背景", "起源與早期紀錄", "事件發展與玩家探索", "證據與矛盾", "轉折與技術解釋", "後續影響與結論"]
+    sections = sections or GAME_SECTIONS
+    instruction = instruction or GAME_INSTRUCTION
     for n, section in enumerate(sections):
         chapter = model.json(
-            'Write ONE chapter of an ORIGINAL Traditional Chinese gaming documentary. '
-            'Use ONLY supplied supported claims; qualify rumors. Do not copy source prose or imitate an existing creator. '
-            'No invented dialogue or dates. Return {"scenes":[{"narration":str,"claim_ids":["C1"],'
-            '"visual_need":"precise English gameplay event visible on screen", "footage_queries":["English exact game and event"]}]}. '
-            'Each scene 40–120 Chinese characters. Total chapter approximately target_characters; '
-            'roughly 6–10 scenes. No padding, repeated hooks or commentary unsupported by claims. '
-            'If evidence cannot sustain the requested length, return fewer scenes rather than invent.',
+            instruction,
             {"topic": plan, "ledger": ledger, "chapter": n+1, "section": section,
-             "previous_narration": [s["narration"] for s in scenes[-8:]], "target_characters": round(minutes * 260 / 6)})
+             "previous_narration": [s["narration"] for s in scenes[-8:]], "target_characters": round(minutes * 260 / len(sections))})
         if not isinstance(chapter.get("scenes"), list):
             raise Blocked("MODEL_SCHEMA", "Missing chapter scenes")
+        for s in chapter["scenes"]:
+            if isinstance(s, dict):
+                s["chapter"] = n
         scenes.extend(chapter["scenes"])
     script = {"title": TRAD.convert(plan.get("original_topic") or plan["game"] + "：" + plan["english_topic"]), "scenes": scenes}
     save(out / "script_draft.json", script)

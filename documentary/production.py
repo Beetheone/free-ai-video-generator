@@ -144,7 +144,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if len(text) > 24:
             text = text[:24] + r"\N" + text[24:]
         rows.append(f"Dialogue: 1,{stamp(c['start'],True)},{stamp(c['end'],True)},Caption,,0,0,0,,{text}")
-    rows.append(f"Dialogue: 0,0:00:00.00,{stamp(min(seconds,3),True)},Info,,0,0,0,,{{\\fad(200,200)}}{safe_text(info)}")
+    if info.strip():
+        rows.append(f"Dialogue: 0,0:00:00.00,{stamp(min(seconds,3),True)},Info,,0,0,0,,{{\\fad(200,200)}}{safe_text(info)}")
     path.write_text(header + "\n".join(rows) + "\n", encoding="utf-8")
 
 

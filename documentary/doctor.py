@@ -39,6 +39,9 @@ def recovery(code):
     if code in {"LICENSED_GAMEPLAY_MISSING", "LICENSED_RELEVANT_FOOTAGE_MISSING", "FOOTAGE_COVERAGE"}:
         return ["Inspect media_sources.json and frame-match assessments for rejected or missing intervals.",
                 "Use a topic with available rights-cleared gameplay or obtain rights; do not substitute stock footage, reference-video clips, or title cards."]
+    if code in {"VISUALS_INSUFFICIENT", "VISUALS_MISSING"}:
+        return ["Inspect image_sources.json and image_tags.json: too few licensed, relevant, non-graphic archive images were found for this topic.",
+                "Try a topic with more documented imagery (people, places, maps, documents). Unrelated pictures are never used as stand-ins."]
     if code in {"RESEARCH_INSUFFICIENT", "EVIDENCE_INSUFFICIENT", "EVIDENCE_INVALID", "FACT_CHECK_FAILED", "SCRIPT_AUDIT_FAILED"}:
         return ["Inspect research.json, evidence_draft.json, evidence_audit.json and script_audit.json as applicable.",
                 "Resolve source availability or contradictory evidence before production; do not mark unsupported claims as verified."]

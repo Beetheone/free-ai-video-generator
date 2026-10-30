@@ -1,5 +1,9 @@
 # Free AI Video Generator
 
+## 歷史模式：丟一個題目，產出 10–15 分鐘 MP4（新）
+
+到 [Actions → One Topic History Video](https://github.com/Beetheone/free-ai-video-generator/actions/workflows/one-topic-history.yml) 輸入歷史題目，會自動完成研究與查核、勾人腳本、授權歷史圖片運鏡、旁白、字幕、背景音樂、縮圖與 YouTube 說明欄，可選擇以私人上傳。用法、限制與設定見 [docs/HISTORY.md](docs/HISTORY.md)。
+
 ## 中文遊戲紀錄片（新流程，仍需真實服務驗收）
 
 到 [Actions → One Topic Game Documentary](https://github.com/Beetheone/free-ai-video-generator/actions/workflows/one-topic-documentary.yml)，輸入中文題材與 10、12 或 15 分鐘。腳本與搜尋詞由系統產生，不必手寫分鏡。流程包含中英文研究、原文引句與跨來源審核、原創繁體中文腳本、Commons 授權遊戲影片、實際影格匹配、中文旁白、字幕、1080p MP4、封面與來源報告。

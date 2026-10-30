@@ -27,7 +27,8 @@ def read_json(path, default):
         return default
 
 
-def write_progress(out, report):
+def write_progress(out, report, stages=None):
+    stages = stages or STAGES
     out = Path(out)
     research = read_json(out / "research.json", {})
     if not isinstance(research, dict):
@@ -54,7 +55,7 @@ def write_progress(out, report):
     lines = ["# 本次製作進度", "", f"題目：{report['topic']}", "",
              "以下為本次實際完成的步驟。自動查核不能保證內容正確，尚未完成的步驟不算成功。", ""]
     done = set(report.get("completed_stages", []))
-    for stage, label in STAGES.items():
+    for stage, label in stages.items():
         state = "已完成" if stage in done else "在此停止" if report.get("failed_stage") == stage else "尚未執行"
         lines.append(f"- {label}：{state}")
     if report.get("blocker"):
