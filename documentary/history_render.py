@@ -41,6 +41,14 @@ def render_scene(scene, audio, shots, work, chip):
     w, h = CANVAS
     parts = []
     for i, (shot, n) in enumerate(zip(shots, frames)):
+        if shot.get("media") == "video":
+            # Real footage: same blurred-cover + fitted layout, original motion, frozen on its last frame if the shot outlasts the clip.
+            parts.append(f"[{i}:v]fps={FPS},format=rgb24,split=2[bg{i}][fg{i}];"
+                         f"[bg{i}]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,boxblur=40:6[bb{i}];"
+                         f"[fg{i}]scale=1920:1080:force_original_aspect_ratio=decrease[fs{i}];"
+                         f"[bb{i}][fs{i}]overlay=(W-w)/2:(H-h)/2,setsar=1,tpad=stop_mode=clone:stop_duration={shot['seconds'] + 2:.3f},"
+                         f"trim=end_frame={n},setpts=PTS-STARTPTS,format=yuv420p[v{i}]")
+            continue
         # Blurred cover layer + fitted original: portraits and odd ratios never get cropped or stretched.
         parts.append(f"[{i}:v]format=rgb24,split=2[bg{i}][fg{i}];"
                      f"[bg{i}]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},boxblur=60:8[bb{i}];"

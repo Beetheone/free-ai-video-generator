@@ -162,9 +162,17 @@ class ImagePool:
         self.downloaded = 0
         self.max_download = 500_000_000
 
+    def add_record(self, record):
+        """Register an already-processed media record (e.g. an Archive video clip) so it is inspected and assigned like an image."""
+        record = {**record, "sha256": record.get("sha256") or digest(str(record["id"]).encode())}
+        if record["id"] in {r["id"] for r in self.records}:
+            return False
+        self.records.append(record)
+        return True
+
     # -- discovery
     def report(self):
-        save(self.out / "image_sources.json", {"records": [{k: v for k, v in r.items() if k != "path"} for r in self.records],
+        save(self.out / "image_sources.json", {"records": [{k: v for k, v in r.items() if k not in ("path", "still")} for r in self.records],
              "errors": self.errors, "queries": sorted(self.queries), "downloaded_bytes": self.downloaded,
              "excluded": "NC, ND, SA, non-free, missing license evidence, restrictions, small or non-JPEG/PNG files"})
 
@@ -299,7 +307,8 @@ def assign_images(model, plan, scenes, pool, out):
         raise Blocked("VISUALS_INSUFFICIENT", f"Only {len(usable)} licensed, relevant, non-graphic images were found (need at least 8). "
                       "Inspect image_sources.json and image_tags.json; no unrelated stand-ins are used.")
     by_id = {r["id"]: r for r in usable}
-    candidates = [{"id": r["id"], "depicts": r["tags"]["depicts"], "kind": r["tags"]["kind"], "relevance": r["tags"]["relevance"]} for r in usable]
+    candidates = [{"id": r["id"], "depicts": r["tags"]["depicts"], "kind": r["tags"]["kind"], "relevance": r["tags"]["relevance"],
+                   "media": "video clip" if r.get("media") == "video" else "image"} for r in usable]
     chosen = {}
     for start in range(0, len(scenes), 8):
         batch = scenes[start:start + 8]
@@ -308,7 +317,8 @@ def assign_images(model, plan, scenes, pool, out):
             '"images":[{"id":str,"fit":"direct|context","confidence":0..1}]}]} with 1-4 images per scene, best first. '
             '"direct" = the image visibly shows what the narration is about. "context" = same period/place/theme but not the exact moment. '
             'NEVER present an image of a different person, event, place or era as a specific named person or event. '
-            'Prefer varied images across neighbouring scenes. Only use the candidate descriptions; do not invent content.',
+            'Prefer varied images across neighbouring scenes. Real moving "video clip" candidates make the video feel alive: use one when it fits the '
+            'narration at least as well as a still, but never force a clip that does not show the subject. Only use the candidate descriptions; do not invent content.',
             {"topic": plan.get("english_topic"), "scenes": [{"id": s["id"], "narration": s["narration"], "visual_need": s["visual_need"]} for s in batch],
              "candidates": candidates})
         entries = result.get("scenes")
@@ -331,6 +341,11 @@ def assign_images(model, plan, scenes, pool, out):
     return chosen
 
 
+def still_of(record):
+    """A full-size picture for thumbnails: the image itself, or the middle frame of a clip."""
+    return record.get("still") or record["path"]
+
+
 MOTIONS = ("zoom_in", "pan_right", "zoom_out", "pan_left")
 
 
@@ -348,7 +363,7 @@ def build_timeline(scenes, seconds, chosen, pool, *, shot_target=6.5, max_reuse=
         for r in filler:
             if len(picks) >= count:
                 break
-            if r["id"] not in picks and uses.get(r["id"], 0) < max_reuse and r["id"] != previous:
+            if r["id"] not in picks and uses.get(r["id"], 0) < (1 if r.get("media") == "video" else max_reuse) and r["id"] != previous:
                 picks.append(r["id"])
         if len(picks) < count:
             # Last resort: repeat this scene's own images at different framing rather than any unrelated picture.
@@ -358,8 +373,10 @@ def build_timeline(scenes, seconds, chosen, pool, *, shot_target=6.5, max_reuse=
         each = length / count
         for j, image_id in enumerate(picks):
             uses[image_id] = uses.get(image_id, 0) + 1
-            shots.append({"asset_id": image_id, "path": usable[image_id]["path"], "seconds": each,
-                          "motion": MOTIONS[(index + j) % len(MOTIONS)]})
+            shot = {"asset_id": image_id, "path": usable[image_id]["path"], "seconds": each, "motion": MOTIONS[(index + j) % len(MOTIONS)]}
+            if usable[image_id].get("media") == "video":
+                shot["media"] = "video"
+            shots.append(shot)
         previous = picks[-1]
         timeline.append(shots)
     return timeline
@@ -432,10 +449,18 @@ def description_text(pack, chapters, sources, images, music):
     lines += [f"{stamp_minutes(start)} {name}" for start, name in chapters]
     lines += ["", DISCLOSURE, "", "資料來源"]
     lines += [f"- {s.get('title', '')[:80]} {s.get('url', '')}".strip() for s in sources[:12]]
+    clips = [r for r in images if r.get("media") == "video"]
+    images = [r for r in images if r.get("media") != "video"]
     by = [r for r in images if r["license_kind"] == "by"]
     pd = [r for r in images if r["license_kind"] == "pd"]
     lines += ["", f"圖片來源：Wikimedia Commons（公有領域 {len(pd)} 張、CC BY {len(by)} 張）。CC BY 圖片如下："]
     lines += [f"- {r['title'].removeprefix('File:')} — {r['creator'][:80]}，{r['license']}，{r['source_url']}" for r in by]
+    if clips:
+        items = {}
+        for r in clips:
+            items.setdefault(r["source_url"], r)
+        lines += ["", f"影片素材：Internet Archive（共 {len(items)} 部）："]
+        lines += [f"- {r['title'][:70]} — {r['creator'][:60]}，{r['license']}，{r['source_url']}" for r in items.values()]
     if music:
         lines += ["", f"音樂：{music['title'].removeprefix('File:')} — {music['creator'][:80]}，{music['license']}，{music['source_url']}"]
     return "\n".join(lines)[:4900]

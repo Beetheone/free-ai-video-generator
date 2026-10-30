@@ -394,3 +394,123 @@ def test_voice_probe_success(monkeypatch):
             yield {"type": "audio", "data": b"x"}
     monkeypatch.setitem(sys.modules, "edge_tts", types.SimpleNamespace(Communicate=Communicate))
     assert voice_probe.probe(timeout=5) == (True, "audio received")
+
+
+# ------------------------------------------------------------------ Internet Archive footage
+
+def make_mp4(path, seconds=24):
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", f"testsrc=size=640x480:rate=24:duration={seconds}",
+                    "-c:v", "libx264", "-pix_fmt", "yuv420p", str(path)], check=True)
+    return Path(path).read_bytes()
+
+
+@pytest.mark.parametrize("url,expected", [
+    ("https://creativecommons.org/publicdomain/zero/1.0/", ("pd", "CC0 1.0")),
+    ("http://creativecommons.org/publicdomain/mark/1.0/", ("pd", "Public Domain Mark 1.0")),
+    ("https://creativecommons.org/licenses/by/4.0/", ("by", "CC BY 4.0")),
+    ("https://creativecommons.org/licenses/by-sa/4.0/", None),
+    ("https://creativecommons.org/licenses/by-nc/4.0/", None),
+    ("https://creativecommons.org/licenses/by-nd/3.0/", None),
+    ("", None), (None, None), ("https://example.com/license", None),
+])
+def test_archive_license_allowlist(url, expected):
+    from documentary.history_footage import archive_license
+    assert archive_license(url) == expected
+
+
+def test_pick_file_prefers_h264_mp4_within_budget():
+    from documentary.history_footage import pick_file
+    files = [{"name": "a.ogv", "format": "Ogg Video", "size": "5000000"},
+             {"name": "a.mp4", "format": "h.264", "size": "9000000"},
+             {"name": "huge.mp4", "format": "h.264", "size": "900000000"},
+             {"name": "dir/x.mp4", "format": "h.264", "size": "9000000"},
+             {"name": "tiny.mp4", "format": "h.264", "size": "10"}]
+    assert pick_file(files) == "a.mp4"
+    assert pick_file([{"name": "x.mkv", "format": "Matroska", "size": "5000000"}]) is None
+
+
+class ArchiveWeb:
+    def __init__(self, mp4, license_url="https://creativecommons.org/publicdomain/mark/1.0/", creator="Film Unit"):
+        self.mp4, self.license_url, self.creator, self.gets = mp4, license_url, creator, []
+
+    def json(self, url, params=None):
+        if "advancedsearch" in url:
+            return {"response": {"docs": [{"identifier": "good_film", "title": "Good", "licenseurl": self.license_url},
+                                           {"identifier": "no_license", "title": "Nope"},
+                                           {"identifier": "nc_film", "licenseurl": "https://creativecommons.org/licenses/by-nc/4.0/"}]}}
+        assert url.endswith("/good_film")
+        return {"metadata": {"title": "Good film", "licenseurl": self.license_url, "creator": self.creator, "description": "<p>A film</p>"},
+                "files": [{"name": "good_film.mp4", "format": "h.264", "size": str(len(self.mp4))}]}
+
+    def get(self, url, params=None, limit=3_000_000):
+        self.gets.append(url)
+        return self.mp4, url
+
+
+def test_footage_collect_cuts_licensed_clips_into_the_pool(tmp_path):
+    from documentary.history_footage import collect
+    web = ArchiveWeb(make_mp4(tmp_path / "src.mp4"))
+    pool = ImagePool(web, FakeModel(), tmp_path, delay=0)
+    report = collect(web, pool, {"english_topic": "Emu War 1932", "image_queries": ["emu soldiers"]}, tmp_path, delay=0)
+    assert report["clips"] >= 2 and [i["id"] for i in report["items"]] == ["good_film"]
+    assert all("good_film" in g for g in web.gets)  # unlicensed and NC items were never downloaded
+    rec = pool.records[0]
+    assert rec["media"] == "video" and rec["license_kind"] == "pd" and rec["source_url"] == "https://archive.org/details/good_film"
+    assert all(Path(r[k]).is_file() for r in pool.records for k in ("path", "preview", "still"))
+    assert 2 <= duration(rec["path"]) <= 8.5
+    assert (tmp_path / "footage_sources.json").is_file()
+    assert not list((tmp_path / "footage").glob("*.mp4"))  # the full download is deleted after cutting
+
+
+def test_footage_requires_creator_for_cc_by(tmp_path):
+    from documentary.history_footage import collect
+    web = ArchiveWeb(make_mp4(tmp_path / "s.mp4", 12), license_url="https://creativecommons.org/licenses/by/4.0/", creator="")
+    pool = ImagePool(web, FakeModel(), tmp_path, delay=0)
+    report = collect(web, pool, {"english_topic": "Emu"}, tmp_path, delay=0)
+    assert report["clips"] == 0 and not web.gets and pool.records == []
+
+
+def test_footage_failures_never_raise(tmp_path):
+    from documentary.history_footage import collect
+    class Broken:
+        def json(self, *a, **k):
+            raise Blocked("NETWORK", "archive.org: ConnectionError")
+    pool = ImagePool(Broken(), FakeModel(), tmp_path, delay=0)
+    report = collect(Broken(), pool, {"english_topic": "Emu"}, tmp_path, delay=0)
+    assert report["clips"] == 0 and report["errors"]
+
+
+def test_real_video_shot_renders_with_images(tmp_path):
+    from documentary.history_footage import make_clips
+    src = tmp_path / "src.mp4"
+    make_mp4(src, 12)
+    clips = make_clips(str(src), "k", tmp_path)
+    assert clips
+    still = tmp_path / "i.jpg"
+    Image.new("RGB", (1600, 900), (200, 80, 60)).save(still)
+    audio = tmp_path / "a.wav"
+    tone(audio, 6)
+    shots = [{"path": str(still), "seconds": 2.0, "motion": "zoom_in", "asset_id": "i"},
+             {"path": clips[0]["path"], "seconds": 4.0, "motion": "zoom_in", "asset_id": clips[0]["id"], "media": "video"}]
+    work = tmp_path / "work"
+    work.mkdir()
+    out = render_scene({"id": 1}, {"seconds": duration(audio), "cues": [{"start": 0, "end": 2.5, "text": "測試字幕"}]}, shots, work, "")
+    info = json.loads(subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-of", "json", out], capture_output=True, text=True).stdout)["streams"][0]
+    assert (info["width"], info["height"]) == (1920, 1080)
+    assert abs(duration(out) - duration(audio)) < 0.15
+
+
+def test_clips_are_used_once_as_filler_and_description_credits_archive(tmp_path):
+    pool = usable_pool(tmp_path, 6)
+    clip = {"id": "clip1", "path": str(tmp_path / "c.mp4"), "media": "video", "license_kind": "pd", "license": "Public Domain Mark 1.0",
+            "title": "Good film", "creator": "Film Unit", "source_url": "https://archive.org/details/good_film",
+            "tags": {"usable": True, "relevance": 0.99, "impact": 0.9, "depicts": "soldiers", "kind": "other"}}
+    pool.records.append(clip)
+    sc = scenes(4)
+    timeline = build_timeline(sc, [13.0] * 4, {}, pool)
+    flat = [s for shots in timeline for s in shots]
+    assert sum(1 for s in flat if s["asset_id"] == "clip1") == 1
+    assert next(s for s in flat if s["asset_id"] == "clip1")["media"] == "video"
+    pack = {"intro": "x"}
+    text = history.description_text(pack, [(0.0, "開場")], [], [clip], None)
+    assert "Internet Archive" in text and "good_film" in text

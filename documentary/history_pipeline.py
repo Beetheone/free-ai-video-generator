@@ -18,7 +18,8 @@ from types import SimpleNamespace
 from .core import Blocked, Model, Web, save
 from .doctor import recovery
 from .history import (HISTORY_INSTRUCTION, HISTORY_SECTIONS, ImagePool, assign_images, audit_hook, build_timeline, chip_for,
-                      description_text, packaging, pick_music, plan_history)
+                      description_text, packaging, pick_music, plan_history, still_of)
+from .history_footage import collect as collect_footage
 from .history_render import history_thumbnail, render
 from .production import FONT
 from .reporting import write_progress
@@ -160,6 +161,15 @@ def run_history(topic, minutes, out, engine="edge", voice="zh-TW-YunJheNeural", 
             pool.search(scene["footage_queries"])
         if len(pool.records) < 8:
             raise Blocked("VISUALS_INSUFFICIENT", f"Only {len(pool.records)} licensed images were found for this topic; inspect image_sources.json. No unrelated stand-ins are used.")
+        # Optional real footage from the Internet Archive (licence-gated). Any failure leaves an images-only video.
+        footage_report = {"clips": 0}
+        if os.getenv("HISTORY_FOOTAGE", "1") != "0":
+            try:
+                footage_report = collect_footage(web, pool, plan, out, delay=pool_delay)
+            except Exception as exc:  # footage is a bonus; never let it end the run
+                footage_report = {"clips": 0, "errors": [type(exc).__name__ + ": " + str(exc)[:160]]}
+                save(out / "footage_sources.json", footage_report)
+        report["footage_clips"] = footage_report.get("clips", 0)
         complete()
 
         enter("image_inspection")
@@ -229,14 +239,14 @@ def run_history(topic, minutes, out, engine="edge", voice="zh-TW-YunJheNeural", 
         cited_sources = [s for s in sources if s.get("id") in cited]
         description = description_text(pack, starts, cited_sources, images, music)
         best = max(images, key=lambda r: (r["tags"]["impact"], r["tags"]["relevance"]))
-        history_thumbnail(best["path"], pack["thumbnail_text"], out / "thumbnail.jpg")
+        history_thumbnail(still_of(best), pack["thumbnail_text"], out / "thumbnail.jpg")
         (out / "DESCRIPTION.txt").write_text(description, encoding="utf-8")
         save(out / "packaging.json", {**pack, "tags": pack["tags"], "chapters": [{"start": s, "name": n} for s, n in starts], "thumbnail_asset": best["id"]})
         credits = ["# 素材來源與授權", ""]
-        credits += [f"- {r['title']} — {r['creator']}\n  {r['source_url']}\n  {r['license']} {r['license_url']}".rstrip() for r in images]
+        credits += [("[影片] " if r.get("media") == "video" else "") + f"{r['title']} — {r['creator']}\n  {r['source_url']}\n  {r['license']} {r['license_url']}".rstrip() for r in images]
         if music:
             credits += ["", f"音樂：{music['title']} — {music['creator']}\n  {music['source_url']}\n  {music['license']}"]
-        credits += ["", "授權依 Wikimedia Commons 檔案頁中繼資料判斷，非獨立法律保證。圖片經 Ken Burns 縮放、裁切與字幕疊加。"]
+        credits += ["", "授權依 Wikimedia Commons 檔案頁與 Internet Archive 項目中繼資料判斷，非獨立法律保證。圖片經 Ken Burns 縮放、裁切與字幕疊加；影片片段經裁切與字幕疊加。"]
         (out / "ATTRIBUTION.md").write_text("\n".join(credits) + "\n", encoding="utf-8")
         save(out / "sources.json", {"topic": topic, "research": [{k: v for k, v in s.items() if k != "text"} for s in sources],
              "evidence": ledger, "images": [{k: v for k, v in r.items() if k not in ("path", "preview")} for r in images],
