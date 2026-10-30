@@ -19,7 +19,7 @@ COMMONS = "https://commons.wikimedia.org/w/api.php"
 WIKIPEDIA = "https://en.wikipedia.org/w/api.php"
 
 HISTORY_SECTIONS = [
-    "開場鉤子：前三個場景先講出最反直覺的結局或矛盾（有證據支持），立刻丟出一個讓人想知道答案的問題，絕不寒暄、不自我介紹、不從年份開始；最後一句留下懸念",
+    "開場鉤子：前三個場景合計不超過 150 字（約 30 秒內），先講出最反直覺的結局或矛盾（有證據支持），立刻丟出一個讓人想知道答案的問題，絕不寒暄、不自我介紹、不從年份開始，不鋪陳背景；開場承諾的內容必須與影片標題相符，且在後面章節兌現；最後一句留下懸念",
     "背景與主角：用一個具體的人和他當時面對的處境，說明事情為什麼會發生；用畫面感的細節取代年表；最後一句拋出新的疑問",
     "事件升級：事情如何一步步失控或出人意料；每個場景只推進一件事；結尾留下尚未解答的懸念",
     "轉折與反常細節：最讓人意外的證據或反轉；保留有據可查的數字與人名；用『但是』『問題是』推進",
@@ -32,6 +32,8 @@ HISTORY_INSTRUCTION = (
     'It must hold attention: spoken, concrete, vivid, short sentences; one idea per scene; people, places, numbers and '
     'stakes instead of a timeline; end every chapter on an open question the next chapter answers. '
     'No greetings, no "今天要跟大家聊", no filler, no moralizing. '
+    'Hook-and-payoff rhythm: the first two scenes of every chapter after the first must answer the question the previous chapter ended on '
+    '(see previous_narration), then raise the next one; never leave a promised answer unpaid. Vary sentence length and pace so no stretch is monotone. '
     'Use ONLY supplied supported claims; qualify rumors and disputed points explicitly. Do not copy source prose or '
     'imitate an existing creator. No invented dialogue, quotes, dates, numbers or motives. '
     'Return {"scenes":[{"narration":str,"claim_ids":["C1"],'
@@ -409,6 +411,9 @@ def audit_hook(model, scenes, ledger):
         {"scenes": [s["narration"] for s in scenes[:4]], "claims": claims})
     keys = ("opens_with_outcome_or_paradox", "has_open_question", "no_greeting_or_preamble", "supported_by_claims")
     audit["passed"] = all(audit.get(k) is True for k in keys)
+    # Viewers decide in roughly the first 30 seconds; at a ~5 characters/second speaking pace that is about 150 characters.
+    audit["opening_characters_first_3_scenes"] = sum(len(s["narration"]) for s in scenes[:3])
+    audit["opening_within_30s_budget"] = audit["opening_characters_first_3_scenes"] <= 180
     return audit
 
 
