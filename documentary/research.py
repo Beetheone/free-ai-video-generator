@@ -385,16 +385,31 @@ def write_script(model, plan, ledger, minutes, out, *, sections=None, instructio
             if isinstance(s, dict):
                 s["chapter"] = n
         scenes.extend(chapter["scenes"])
-    # A closing callback sometimes repeats an earlier line word for word; keep the first, drop the copy.
-    unique, seen_text = [], set()
+    # Remove scenes that cannot be traced to the ledger (unknown claim IDs), are malformed, or repeat an earlier line
+    # word for word. Nothing is rewritten or invented; every drop is recorded in script_dropped_scenes.json.
+    known = {c["id"] for c in ledger["claims"]}
+    kept, dropped, seen_text = [], [], set()
     for s in scenes:
-        key = TRAD.convert(str(s.get("narration", "")).strip()) if isinstance(s, dict) else None
-        if key is not None and key in seen_text:
+        if not isinstance(s, dict) or not isinstance(s.get("narration"), str):
+            dropped.append({"reason": "malformed scene"})
             continue
-        if key is not None:
-            seen_text.add(key)
-        unique.append(s)
-    scenes[:] = unique
+        text = TRAD.convert(s["narration"].strip())
+        refs = s.get("claim_ids")
+        valid = [r for r in refs if isinstance(r, str) and r in known] if isinstance(refs, list) else []
+        if not 20 <= len(text) <= 180 or not re.search(r"[\u3400-\u9fff]", text):
+            dropped.append({"reason": "narration length outside 20–180", "chars": len(text)})
+        elif not valid:
+            dropped.append({"reason": "no valid claim IDs", "claim_ids": refs if isinstance(refs, list) else None, "narration": text[:60]})
+        elif text in seen_text:
+            dropped.append({"reason": "verbatim repeat", "narration": text[:60]})
+        elif not isinstance(s.get("visual_need"), str) or not s["visual_need"].strip():
+            dropped.append({"reason": "missing visual description", "narration": text[:60]})
+        else:
+            s["claim_ids"] = valid
+            seen_text.add(text)
+            kept.append(s)
+    scenes[:] = kept
+    save(out / "script_dropped_scenes.json", dropped)
     script = {"title": TRAD.convert(plan.get("original_topic") or plan["game"] + "：" + plan["english_topic"]), "scenes": scenes}
     save(out / "script_draft.json", script)
     validate_script(script, ledger, minutes)

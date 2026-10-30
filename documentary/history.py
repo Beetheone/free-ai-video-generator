@@ -37,7 +37,9 @@ HISTORY_INSTRUCTION = (
     'Return {"scenes":[{"narration":str,"claim_ids":["C1"],'
     '"visual_need":"precise English description of the historical photograph, painting, map or document that should be on screen",'
     '"footage_queries":["1-2 English Wikimedia Commons search queries naming the exact subject, people, place or era"]}]}. '
-    'Each scene 40–120 Chinese characters, roughly 6–10 scenes. '
+    'Each scene 40–120 Chinese characters. Write 8–14 scenes and aim for target_characters: one supported claim can carry '
+    '2–4 scenes if you slow down, set the scene, explain what was at stake and voice the question a viewer would ask, '
+    'but every sentence must stay traceable to the claims you cite in claim_ids (use ONLY IDs that exist in the ledger; every scene needs at least one). '
     'Never repeat any earlier sentence word for word (see previous_narration); a callback to the opening must be reworded. '
     'If evidence cannot sustain the requested length, return fewer scenes rather than invent.'
 )
