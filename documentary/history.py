@@ -38,6 +38,7 @@ HISTORY_INSTRUCTION = (
     '"visual_need":"precise English description of the historical photograph, painting, map or document that should be on screen",'
     '"footage_queries":["1-2 English Wikimedia Commons search queries naming the exact subject, people, place or era"]}]}. '
     'Each scene 40–120 Chinese characters, roughly 6–10 scenes. '
+    'Never repeat any earlier sentence word for word (see previous_narration); a callback to the opening must be reworded. '
     'If evidence cannot sustain the requested length, return fewer scenes rather than invent.'
 )
 

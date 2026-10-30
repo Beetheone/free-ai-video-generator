@@ -382,6 +382,16 @@ def write_script(model, plan, ledger, minutes, out, *, sections=None, instructio
             if isinstance(s, dict):
                 s["chapter"] = n
         scenes.extend(chapter["scenes"])
+    # A closing callback sometimes repeats an earlier line word for word; keep the first, drop the copy.
+    unique, seen_text = [], set()
+    for s in scenes:
+        key = TRAD.convert(str(s.get("narration", "")).strip()) if isinstance(s, dict) else None
+        if key is not None and key in seen_text:
+            continue
+        if key is not None:
+            seen_text.add(key)
+        unique.append(s)
+    scenes[:] = unique
     script = {"title": TRAD.convert(plan.get("original_topic") or plan["game"] + "：" + plan["english_topic"]), "scenes": scenes}
     save(out / "script_draft.json", script)
     validate_script(script, ledger, minutes)
