@@ -135,7 +135,7 @@ def run_history(topic, minutes, out, engine="edge", voice="zh-TW-YunJheNeural", 
             return report
 
         enter("hook_script")
-        script = deps.write_script(model, plan, ledger, minutes, out, sections=HISTORY_SECTIONS, instruction=HISTORY_INSTRUCTION)
+        script = deps.write_script(model, plan, ledger, minutes, out, sections=HISTORY_SECTIONS, instruction=HISTORY_INSTRUCTION, prune_rejected=True)
         claims_by_id = {c["id"]: c for c in ledger["claims"]}
         for scene in script["scenes"]:
             scene["chip"] = chip_for(scene, claims_by_id)

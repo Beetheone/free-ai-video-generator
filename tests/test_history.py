@@ -101,7 +101,7 @@ def fake_deps(scene_seconds=4):
               {"id": "C2", "statement": "合成主張二", "date": None, "evidence": [{"source_id": "S1", "quote": "fixture"}]}]
     sources = [{"id": "S1", "title": "Fixture source", "url": "https://fixture.example.org/a", "text": "fixture text"}]
 
-    def write_script(model, plan, ledger, minutes, out, *, sections=None, instruction=None):
+    def write_script(model, plan, ledger, minutes, out, *, sections=None, instruction=None, **_):
         assert sections and instruction and sections[0].startswith("開場鉤子")
         scenes = [{"id": i + 1, "narration": f"這是第{i+1}段合成測試旁白，只驗證程式流程。", "claim_ids": ["C1" if i % 2 == 0 else "C2"],
                    "visual_need": "fixture image", "footage_queries": [f"fixture scene {i}"], "info": "資料：C1", "chapter": i * 6 // 8}

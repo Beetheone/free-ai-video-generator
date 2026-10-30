@@ -370,7 +370,7 @@ GAME_INSTRUCTION = (
     'If evidence cannot sustain the requested length, return fewer scenes rather than invent.')
 
 
-def write_script(model, plan, ledger, minutes, out, *, sections=None, instruction=None):
+def write_script(model, plan, ledger, minutes, out, *, sections=None, instruction=None, prune_rejected=False):
     scenes = []
     sections = sections or GAME_SECTIONS
     instruction = instruction or GAME_INSTRUCTION
@@ -424,6 +424,22 @@ def write_script(model, plan, ledger, minutes, out, *, sections=None, instructio
             'misleading chronology, unqualified rumor, substantial copied wording and filler.',
             {"scenes": batch, "claims": [c for c in ledger["claims"] if c["id"] in refs]})
         checks.extend(audit.get("scenes", []))
+    if prune_rejected:
+        # Removing a scene the audit could not support only ever deletes content; it never adds any. A scene the
+        # auditor failed to judge counts as rejected. The remaining script is renumbered, length-checked and
+        # structure-audited again below.
+        verdicts = {x["id"]: x for x in checks if isinstance(x, dict) and isinstance(x.get("id"), int)}
+        survivors, removed = [], []
+        for sc in scenes:
+            v = verdicts.get(sc["id"])
+            if v and v.get("supported") is True and v.get("original") is True:
+                survivors.append((sc, str(v.get("reason") or "audited")))
+            else:
+                removed.append({"id": sc["id"], "narration": sc["narration"][:60], "verdict": v})
+        save(out / "script_audit_removed.json", removed)
+        scenes[:] = [sc for sc, _ in survivors]
+        validate_script(script, ledger, minutes)
+        checks = [{"id": sc["id"], "supported": True, "original": True, "reason": reason} for sc, (_, reason) in zip(scenes, survivors)]
     structure = model.json(
         'Audit the story sequence against the REQUESTED TOPIC as a whole. '
         'Return {"coherent":bool,"repetitive":bool,"answers_topic":bool,"reason":str}. '
