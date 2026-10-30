@@ -75,6 +75,9 @@ def plan_history(model, topic):
     # Shared research helpers read plan["game"] as an extra ranking keyword.
     result["game"] = result["english_topic"]
     result["footage_queries"] = result["image_queries"]
+    # A 10–15 minute narration needs far more atomic, corroborated facts than the game pipeline's default.
+    result["quotes_per_source"] = 12
+    result["ledger_target"] = "18–28"
     return result
 
 
