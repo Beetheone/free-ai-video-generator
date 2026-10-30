@@ -43,6 +43,7 @@ def test_model_error_does_not_log_secret(monkeypatch):
     monkeypatch.setenv("LLM_API_KEY", "fixture-secret-do-not-log")
     monkeypatch.setenv("LLM_BASE_URL", "https://provider.example.org/v1")
     monkeypatch.setenv("LLM_MODEL", "fixture")
+    monkeypatch.setenv("LLM_RETRY_DELAY", "0")
     class Response:
         status_code = 429
         text = "fixture-secret-do-not-log"
@@ -320,3 +321,27 @@ def test_missing_licensed_assets_stops_before_voice_or_render(tmp_path, monkeypa
     assert report["blocker"]["code"] == "LICENSED_GAMEPLAY_MISSING"
     assert report["completed_stages"] == ["bilingual_topic_expansion", "research", "evidence_audit", "original_script"]
     assert not list(out.rglob("*.mp4"))
+
+
+def test_model_retries_transient_503_then_succeeds(monkeypatch):
+    monkeypatch.setenv("LLM_API_KEY", "fixture-key")
+    monkeypatch.setenv("LLM_BASE_URL", "https://provider.example.org/v1")
+    monkeypatch.setenv("LLM_MODEL", "fixture")
+    monkeypatch.setenv("LLM_RETRY_DELAY", "0")
+    monkeypatch.setenv("LLM_MIN_INTERVAL", "0")
+    seen = []
+    class Busy:
+        status_code = 503
+        text = ""
+        headers = {}
+    class Ok:
+        status_code = 200
+        headers = {}
+        def json(self):
+            return {"choices": [{"finish_reason": "stop", "message": {"content": "{\"a\": 1}"}}], "usage": {"prompt_tokens": 1, "completion_tokens": 1}}
+    def post(*a, **k):
+        seen.append(1)
+        return Busy() if len(seen) < 3 else Ok()
+    monkeypatch.setattr("documentary.core.requests.post", post)
+    assert Model().json("test", {}) == {"a": 1}
+    assert len(seen) == 3
