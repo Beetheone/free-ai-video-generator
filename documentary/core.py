@@ -149,6 +149,21 @@ class Model:
         self.last_call = 0
 
     def json(self, instruction, payload, images=()):
+        # Models occasionally emit one unescaped quote in a long Chinese string. A fresh sample almost
+        # always parses, so retry malformed JSON a few times before giving up (each try counts as a call).
+        try:
+            tries = 1 + max(0, min(int(os.getenv("LLM_JSON_RETRIES", "3")), 6))
+        except ValueError:
+            tries = 4
+        for attempt in range(tries):
+            note = "" if attempt == 0 else " IMPORTANT: your previous reply was not valid JSON. Return ONE strictly valid JSON object; escape every double quote inside strings as \\\" (or use 「」 instead) and add no text outside the object."
+            try:
+                return self._json_once(instruction + note, payload, images)
+            except Blocked as exc:
+                if exc.code != "MODEL_SCHEMA" or "invalid JSON" not in str(exc) or attempt == tries - 1:
+                    raise
+
+    def _json_once(self, instruction, payload, images=()):
         if urlsplit(self.base).hostname in {"models.github.ai", "models.inference.ai.azure.com"}:
             raise Blocked("MODEL_PROVIDER_RETIRED", "GitHub Models inference retired on 2026-07-30. Configure an active text+vision provider; a new GitHub token will not restore it.")
         if not self.key:
